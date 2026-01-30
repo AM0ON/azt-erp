@@ -14,16 +14,47 @@ class TaskController extends ChangeNotifier {
   String get userRole => _currentUserRole;
   String get currentUserName => _currentUserName;
 
-  // CORREÇÃO DO ERRO: Inicializado como false (não nulo)
-  bool _isKanbanMode = false;
-  bool get isKanbanMode => _isKanbanMode;
-
   bool get isManager => _currentUserRole == '_CTO' || _currentUserRole == '_GESTAO';
   bool get canCreateOrDelete => isManager;
 
   bool canComplete(TaskModel task) {
     if (isManager) return true;
     return task.assignee == _currentUserName;
+  }
+
+  bool _isKanbanMode = false;
+  bool get isKanbanMode => _isKanbanMode;
+
+  void toggleViewMode() {
+    _isKanbanMode = !_isKanbanMode;
+    notifyListeners();
+  }
+
+  void addSubTask(String taskId, String title) {
+    final index = _allTasks.indexWhere((t) => t.id == taskId);
+    if (index != -1) {
+      _allTasks[index].subtasks.add(SubTask(id: DateTime.now().toString(), title: title));
+      notifyListeners();
+    }
+  }
+
+  void toggleSubTask(String taskId, String subTaskId) {
+    final taskIndex = _allTasks.indexWhere((t) => t.id == taskId);
+    if (taskIndex != -1) {
+      final subIndex = _allTasks[taskIndex].subtasks.indexWhere((s) => s.id == subTaskId);
+      if (subIndex != -1) {
+        _allTasks[taskIndex].subtasks[subIndex].isCompleted = !_allTasks[taskIndex].subtasks[subIndex].isCompleted;
+        notifyListeners();
+      }
+    }
+  }
+
+  void removeSubTask(String taskId, String subTaskId) {
+    final taskIndex = _allTasks.indexWhere((t) => t.id == taskId);
+    if (taskIndex != -1) {
+      _allTasks[taskIndex].subtasks.removeWhere((s) => s.id == subTaskId);
+      notifyListeners();
+    }
   }
 
   final List<CategoryItem> _categories = [
@@ -36,6 +67,7 @@ class TaskController extends ChangeNotifier {
 
   List<CategoryItem> get categories => _categories;
 
+  // [CORREÇÃO]: Dados iniciais usam String
   final List<TaskModel> _allTasks = [
     TaskModel(
       id: '1',
@@ -43,10 +75,14 @@ class TaskController extends ChangeNotifier {
       description: "Subir alterações no servidor.",
       client: "Restaurante Bom Sabor",
       dueDate: DateTime.now().add(const Duration(days: 1)),
-      category: TaskCategory.azorTechWeb,
+      category: "Web Dev", 
       priority: TaskPriority.urgente,
       status: TaskStatus.inProgress,
-      assignee: "Admin"
+      assignee: "Admin",
+      subtasks: [
+        SubTask(id: 's1', title: 'Minificar Assets', isCompleted: true),
+        SubTask(id: 's2', title: 'Testar Responsividade', isCompleted: false),
+      ]
     ),
     TaskModel(
       id: '2',
@@ -54,7 +90,7 @@ class TaskController extends ChangeNotifier {
       description: "Verificar pagamentos.",
       client: "Interno",
       dueDate: DateTime.now(),
-      category: TaskCategory.financeiro,
+      category: "Financeiro", 
       priority: TaskPriority.alta,
       status: TaskStatus.todo,
     ),
@@ -73,34 +109,20 @@ class TaskController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleViewMode() {
-    _isKanbanMode = !_isKanbanMode;
-    notifyListeners();
-  }
-
   void updateTaskStatus(String taskId, TaskStatus newStatus) {
     final index = _allTasks.indexWhere((t) => t.id == taskId);
-    if (index != -1) {
-      if (canComplete(_allTasks[index])) {
-        _allTasks[index].status = newStatus;
-        notifyListeners();
-      }
+    if (index != -1 && canComplete(_allTasks[index])) {
+      _allTasks[index].status = newStatus;
+      _allTasks[index].isCompleted = (newStatus == TaskStatus.done);
+      notifyListeners();
     }
   }
 
   void toggleTaskCompletion(String id) {
     final index = _allTasks.indexWhere((t) => t.id == id);
-    if (index != -1) {
-      final task = _allTasks[index];
-      if (canComplete(task)) {
-        bool isDone = !task.isCompleted;
-      if (isDone) {
-        task.status = TaskStatus.done;  
-      } else {
-        task.status = TaskStatus.todo;  
-        notifyListeners();
-      }
-      }
+    if (index != -1 && canComplete(_allTasks[index])) {
+      _allTasks[index].isCompleted = !_allTasks[index].isCompleted;
+      notifyListeners();
     }
   }
 
@@ -111,28 +133,15 @@ class TaskController extends ChangeNotifier {
     }
   }
 
-  void addTask(TaskModel task) {
-    if (canCreateOrDelete) {
-      _allTasks.add(task);
-      notifyListeners();
-    }
+  void addTask(TaskModel task) { if (canCreateOrDelete) { _allTasks.add(task); notifyListeners(); } }
+  
+  void updateTask(TaskModel task) { 
+    final index = _allTasks.indexWhere((t) => t.id == task.id);
+    if (index != -1) { _allTasks[index] = task; notifyListeners(); }
   }
-
-  void updateTask(TaskModel updatedTask) {
-    final index = _allTasks.indexWhere((t) => t.id == updatedTask.id);
-    if (index != -1) {
-      _allTasks[index] = updatedTask;
-      notifyListeners();
-    }
-  }
-
-  void deleteTask(String id) {
-    if (canCreateOrDelete) {
-      _allTasks.removeWhere((t) => t.id == id);
-      notifyListeners();
-    }
-  }
-
+  
+  void deleteTask(String id) { if (canCreateOrDelete) { _allTasks.removeWhere((t) => t.id == id); notifyListeners(); } }
+  
   void addComment(String taskId, String content) {
     final index = _allTasks.indexWhere((t) => t.id == taskId);
     if (index != -1) {
@@ -143,9 +152,6 @@ class TaskController extends ChangeNotifier {
 
   bool _matchesFilter(TaskModel task) {
     if (_selectedCategoryFilter == "Todas") return true;
-    String labelToCheck = _selectedCategoryFilter;
-    if (_selectedCategoryFilter == "Produção") labelToCheck = "Produção"; 
-    return task.categoryLabel == labelToCheck || 
-           (_selectedCategoryFilter == "Produção" && task.categoryLabel == "Produção"); 
+    return task.category == _selectedCategoryFilter;
   }
 }

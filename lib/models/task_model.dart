@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 enum TaskPriority { baixa, media, alta, urgente }
-enum TaskCategory { pessoal, azorTechProducao, azorTechWeb, financeiro }
+// Enum de Categoria removido: Agora usamos String dinâmica
 enum TaskStatus { todo, inProgress, review, done }
 
 class TaskComment {
@@ -12,17 +12,26 @@ class TaskComment {
   TaskComment({required this.author, required this.content, required this.date});
 }
 
+class SubTask {
+  final String id;
+  String title;
+  bool isCompleted;
+
+  SubTask({required this.id, required this.title, this.isCompleted = false});
+}
+
 class TaskModel {
   final String id;
   String title;
   String description;
-  String? client; // [FINALIZADO] Campo Cliente
+  String? client;
   DateTime dueDate;
-  TaskCategory category;
+  String category; // Tipo String Confirmado
   TaskPriority priority;
   TaskStatus status;
   String? assignee;
   List<TaskComment> comments;
+  List<SubTask> subtasks;
 
   TaskModel({
     required this.id,
@@ -35,27 +44,35 @@ class TaskModel {
     this.status = TaskStatus.todo,
     this.assignee,
     List<TaskComment>? comments,
-  }) : comments = comments ?? [];
+    List<SubTask>? subtasks,
+  }) : comments = comments ?? [],
+       subtasks = subtasks ?? [];
 
-  bool get isCompleted => status == TaskStatus.done;
-
-  // Helpers Visuais
-  String get categoryLabel {
-    switch (category) {
-      case TaskCategory.pessoal: return "Pessoal";
-      case TaskCategory.azorTechProducao: return "Produção";
-      case TaskCategory.azorTechWeb: return "Web Dev";
-      case TaskCategory.financeiro: return "Financeiro";
+  bool _isCompleted = false;
+  
+  bool get isCompleted {
+    return status == TaskStatus.done;
+  }
+  
+  set isCompleted(bool value) {
+    _isCompleted = value;
+    if (value) {
+      status = TaskStatus.done;
+    } else {
+      if (status == TaskStatus.done) status = TaskStatus.todo;
     }
   }
 
+  String get categoryLabel => category;
+
   IconData get categoryIcon {
-    switch (category) {
-      case TaskCategory.pessoal: return Icons.person_outline;
-      case TaskCategory.azorTechProducao: return Icons.layers_outlined;
-      case TaskCategory.azorTechWeb: return Icons.code;
-      case TaskCategory.financeiro: return Icons.attach_money;
-    }
+    final cat = category.toLowerCase().replaceAll(' ', '');
+    if (cat.contains('pessoal')) return Icons.person_outline;
+    if (cat.contains('produção') || cat.contains('producao')) return Icons.layers_outlined;
+    if (cat.contains('web')) return Icons.code;
+    if (cat.contains('financeiro')) return Icons.attach_money;
+    if (cat.contains('marketing')) return Icons.campaign;
+    return Icons.bookmark_outline;
   }
 
   Color get priorityColor {
