@@ -16,28 +16,30 @@ class TaskModel {
   final String id;
   String title;
   String description;
+  String? client; // Novo Campo
   DateTime dueDate;
   TaskCategory category;
   TaskPriority priority;
   TaskStatus status;
   String? assignee;
-  List<TaskComment> comments; // Nova lista de comentários
+  List<TaskComment> comments;
 
   TaskModel({
     required this.id,
     required this.title,
     required this.description,
+    this.client,
     required this.dueDate,
     required this.category,
     required this.priority,
     this.status = TaskStatus.todo,
     this.assignee,
     List<TaskComment>? comments,
-  }) : comments = comments ?? []; // Inicializa vazia se nulo
+  }) : comments = comments ?? [];
 
   bool get isCompleted => status == TaskStatus.done;
 
-  // Helpers Visuais (Mantidos iguais)
+  // Helpers Visuais
   String get categoryLabel {
     switch (category) {
       case TaskCategory.pessoal: return "Pessoal";
