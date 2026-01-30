@@ -1,3 +1,4 @@
+import 'package:azt_tasks/pages/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -21,15 +22,15 @@ class AZTTasksApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // PALETA DARK MODE
-    const primaryColor = Color(0xFF2EA063); // Verde AZT (Mantido)
-    const backgroundColor = Color(0xFF111827); // Fundo Principal (Rich Black)
-    const surfaceColor = Color(0xFF1F2937); // Cards e Dialogs (Dark Grey)
-    const textColor = Color(0xFFF9FAFB); // Texto Principal (Off-white)
-    const textSecColor = Color(0xFF9CA3AF); // Texto Secundário (Cool Grey)
-    const borderColor = Color(0xFF374151); // Bordas Sutis
+    // 1. DEFINIÇÃO DAS CORES (Variáveis locais)
+    const primaryColor = Color(0xFF2EA063);
+    const backgroundColor = Color(0xFF111827);
+    const surfaceColor = Color(0xFF1F2937);
+    const textColor = Color(0xFFF9FAFB);
+    const textSecColor = Color(0xFF9CA3AF);
+    const borderColor = Color(0xFF374151);
 
-    // Configuração da Fonte (Inter para tudo, cor branca padrão)
+    // Configuração da Fonte
     final textTheme = GoogleFonts.interTextTheme(Theme.of(context).textTheme).apply(
       bodyColor: textColor,
       displayColor: textColor,
@@ -45,10 +46,9 @@ class AZTTasksApp extends StatelessWidget {
       ],
       supportedLocales: const [Locale('pt', 'BR')],
       
-      // TEMA ESCURO GLOBAL
       theme: ThemeData(
         useMaterial3: true,
-        brightness: Brightness.dark, // Importante para o Flutter ajustar contraste nativo
+        brightness: Brightness.dark,
         scaffoldBackgroundColor: backgroundColor,
         textTheme: textTheme,
         
@@ -60,7 +60,7 @@ class AZTTasksApp extends StatelessWidget {
           surface: surfaceColor,
         ),
         
-        // AppBar Escura
+        // AppBar
         appBarTheme: AppBarTheme(
           backgroundColor: backgroundColor,
           surfaceTintColor: Colors.transparent,
@@ -75,8 +75,8 @@ class AZTTasksApp extends StatelessWidget {
           ),
         ),
 
-        // Cards e Dialogs
-        cardTheme: CardTheme(
+        // CORREÇÃO: CardTheme (minúsculo no início)
+        cardTheme: CardThemeData(
           color: surfaceColor,
           elevation: 0,
           shape: RoundedRectangleBorder(
@@ -85,7 +85,8 @@ class AZTTasksApp extends StatelessWidget {
           ),
         ),
 
-        dialogTheme: DialogTheme(
+        // CORREÇÃO: DialogTheme (minúsculo no início)
+        dialogTheme: DialogThemeData(
           backgroundColor: surfaceColor,
           surfaceTintColor: Colors.transparent,
           shape: RoundedRectangleBorder(
@@ -94,7 +95,9 @@ class AZTTasksApp extends StatelessWidget {
           ),
         ),
 
-        // Botões
+        // CORREÇÃO CRÍTICA AQUI:
+        // O nome do parâmetro é 'filledButtonTheme' (minúsculo)
+        // O valor é 'FilledButtonThemeData' (Classe de dados)
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
             backgroundColor: primaryColor,
@@ -106,13 +109,13 @@ class AZTTasksApp extends StatelessWidget {
           ),
         ),
 
-        // Inputs (Campos de Texto Escuros)
+        // Inputs
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: const Color(0xFF374151), // Cinza mais claro que o fundo
+          fillColor: const Color(0xFF374151),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          hintStyle: TextStyle(color: textSecColor),
-          labelStyle: TextStyle(color: textSecColor),
+          hintStyle: const TextStyle(color: textSecColor),
+          labelStyle: const TextStyle(color: textSecColor),
           prefixIconColor: textSecColor,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
@@ -128,7 +131,7 @@ class AZTTasksApp extends StatelessWidget {
           ),
         ),
 
-        // Menu Popup
+        // Menus
         popupMenuTheme: PopupMenuThemeData(
           color: surfaceColor,
           textStyle: GoogleFonts.inter(color: textColor),
@@ -138,7 +141,6 @@ class AZTTasksApp extends StatelessWidget {
           ),
         ),
         
-        // Divisores
         dividerTheme: const DividerThemeData(color: borderColor, thickness: 1),
       ),
       home: const LoginPage(),
