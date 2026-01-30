@@ -4,8 +4,7 @@ import 'package:intl/intl.dart';
 import '../../models/task_model.dart';
 
 class AddTaskDialog extends StatefulWidget {
-  final TaskModel? taskToEdit; // Parâmetro restaurado para edição
-
+  final TaskModel? taskToEdit;
   const AddTaskDialog({super.key, this.taskToEdit});
 
   @override
@@ -16,7 +15,6 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   final _titleController = TextEditingController();
   final _descController = TextEditingController();
   final _assigneeController = TextEditingController();
-  
   String _selectedPriority = 'media';
   String _selectedCategory = 'pessoal'; 
   DateTime _selectedDate = DateTime.now();
@@ -24,18 +22,14 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   @override
   void initState() {
     super.initState();
-    // Se veio uma tarefa para editar, preenchemos os campos
     if (widget.taskToEdit != null) {
       final t = widget.taskToEdit!;
       _titleController.text = t.title;
       _descController.text = t.description;
       _assigneeController.text = t.assignee ?? "";
       _selectedPriority = t.priority.name;
-      // Convertendo o Enum para String para o Dropdown
       _selectedCategory = t.category.toString().split('.').last; 
-      // Mapeamento manual para casos onde o nome do enum difere do valor esperado no dropdown (ex: azorTechProducao)
-      if (_selectedCategory == 'azorTechProducao') _selectedCategory = 'azorTechProducao'; // Mantém igual pois o value do dropdown espera isso
-      
+      if (_selectedCategory == 'azorTechProducao') _selectedCategory = 'azorTechProducao'; 
       _selectedDate = t.dueDate;
     }
   }
@@ -43,11 +37,9 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   @override
   Widget build(BuildContext context) {
     final isEditing = widget.taskToEdit != null;
-
+    
+    // As cores vêm do DialogTheme no main.dart (Fundo escuro)
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      backgroundColor: Colors.white,
-      surfaceTintColor: Colors.transparent,
       child: Container(
         width: 500,
         padding: const EdgeInsets.all(32),
@@ -58,41 +50,18 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  isEditing ? "Editar Tarefa" : "Nova Tarefa", 
-                  style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold)
-                ),
-                IconButton(icon: const Icon(Icons.close, size: 20), onPressed: () => Navigator.pop(context)),
+                Text(isEditing ? "Editar Tarefa" : "Nova Tarefa", style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
               ],
             ),
-            const Divider(height: 32),
+            const SizedBox(height: 24),
             
-            // Título
-            TextField(
-              controller: _titleController,
-              style: GoogleFonts.inter(fontSize: 14),
-              decoration: const InputDecoration(labelText: "Título da Tarefa"),
-            ),
+            // TextFields automagicamente escuros via main.dart
+            TextField(controller: _titleController, decoration: const InputDecoration(labelText: "Título")),
             const SizedBox(height: 16),
-            
-            // Descrição
-            TextField(
-              controller: _descController,
-              style: GoogleFonts.inter(fontSize: 14),
-              decoration: const InputDecoration(labelText: "Descrição"),
-              maxLines: 2,
-            ),
-             const SizedBox(height: 16),
-            
-            // Responsável
-            TextField(
-              controller: _assigneeController,
-              style: GoogleFonts.inter(fontSize: 14),
-              decoration: const InputDecoration(
-                labelText: "Responsável (Nome)",
-                prefixIcon: Icon(Icons.person_outline, size: 18)
-              ),
-            ),
+            TextField(controller: _descController, decoration: const InputDecoration(labelText: "Descrição"), maxLines: 2),
+            const SizedBox(height: 16),
+            TextField(controller: _assigneeController, decoration: const InputDecoration(labelText: "Responsável", prefixIcon: Icon(Icons.person))),
 
             const SizedBox(height: 16),
             Row(
@@ -100,7 +69,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     value: _selectedPriority,
-                    style: GoogleFonts.inter(fontSize: 14, color: Colors.black),
+                    dropdownColor: Theme.of(context).cardTheme.color, // Dropdown escuro
                     decoration: const InputDecoration(labelText: "Prioridade"),
                     items: const [
                       DropdownMenuItem(value: 'baixa', child: Text("Baixa")),
@@ -115,7 +84,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     value: _selectedCategory,
-                    style: GoogleFonts.inter(fontSize: 14, color: Colors.black),
+                    dropdownColor: Theme.of(context).cardTheme.color,
                     decoration: const InputDecoration(labelText: "Categoria"),
                     items: const [
                       DropdownMenuItem(value: 'pessoal', child: Text("Pessoal")),
@@ -130,51 +99,38 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
             ),
             
             const SizedBox(height: 16),
-            
-            // Seletor de Data Simples
             InkWell(
               onTap: () async {
                 final date = await showDatePicker(
                   context: context, 
                   initialDate: _selectedDate, 
                   firstDate: DateTime(2020), 
-                  lastDate: DateTime(2030)
+                  lastDate: DateTime(2030),
+                  builder: (context, child) {
+                    return Theme(data: Theme.of(context), child: child!); // Força tema dark no datepicker
+                  }
                 );
                 if(date != null) setState(() => _selectedDate = date);
               },
               child: InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: "Data de Entrega",
-                  prefixIcon: Icon(Icons.calendar_today, size: 18),
-                ),
-                child: Text(
-                  DateFormat('dd/MM/yyyy').format(_selectedDate),
-                  style: GoogleFonts.inter(fontSize: 14),
-                ),
+                decoration: const InputDecoration(labelText: "Data de Entrega", prefixIcon: Icon(Icons.calendar_today)),
+                child: Text(DateFormat('dd/MM/yyyy').format(_selectedDate), style: const TextStyle(color: Colors.white)),
               ),
             ),
 
             const SizedBox(height: 32),
-            
-            // Botão Salvar
             Align(
               alignment: Alignment.centerRight,
               child: FilledButton.icon(
                 onPressed: () {
                   if (_titleController.text.isEmpty) return;
-                  
-                  // Retorna um Map com os dados
                   Navigator.pop(context, {
-                    'title': _titleController.text,
-                    'desc': _descController.text,
-                    'assignee': _assigneeController.text,
-                    'priority': _selectedPriority,
-                    'category': _selectedCategory,
-                    'date': _selectedDate
+                    'title': _titleController.text, 'desc': _descController.text, 'assignee': _assigneeController.text,
+                    'priority': _selectedPriority, 'category': _selectedCategory, 'date': _selectedDate
                   });
                 },
                 icon: Icon(isEditing ? Icons.save : Icons.check, size: 18),
-                label: Text(isEditing ? "Salvar Alterações" : "Criar Tarefa"),
+                label: Text(isEditing ? "Salvar" : "Criar"),
               ),
             )
           ],

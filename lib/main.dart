@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'controllers/task_controller.dart';
-import '../pages/login_page.dart';
+import 'pages/login_page.dart';
 
 void main() {
   runApp(
@@ -22,15 +22,16 @@ class AZTTasksApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. DEFINIÇÃO DAS CORES (Variáveis locais)
-    const primaryColor = Color(0xFF2EA063);
-    const backgroundColor = Color(0xFF111827);
-    const surfaceColor = Color(0xFF1F2937);
-    const textColor = Color(0xFFF9FAFB);
-    const textSecColor = Color(0xFF9CA3AF);
-    const borderColor = Color(0xFF374151);
+    // --- PALETA DE CORES DARK MODE DEFINITIVA ---
+    const primaryColor = Color(0xFF2EA063);      // Verde AZT
+    const bgColor = Color(0xFF0B0F19);           // Fundo da Tela (Quase preto)
+    const surfaceColor = Color(0xFF151B2B);      // Cards e Dialogs (Cinza Azulado Escuro)
+    const inputColor = Color(0xFF1F2937);        // Fundo dos Inputs
+    const borderColor = Color(0xFF2D3748);       // Bordas sutis
+    const textColor = Color(0xFFF3F4F6);         // Branco Gelo (Leitura)
+    const textSecColor = Color(0xFF9CA3AF);      // Cinza Texto Secundário
 
-    // Configuração da Fonte
+    // Tipografia Global
     final textTheme = GoogleFonts.interTextTheme(Theme.of(context).textTheme).apply(
       bodyColor: textColor,
       displayColor: textColor,
@@ -49,74 +50,57 @@ class AZTTasksApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: backgroundColor,
+        scaffoldBackgroundColor: bgColor,
         textTheme: textTheme,
+        primaryColor: primaryColor,
         
         colorScheme: ColorScheme.fromSeed(
           seedColor: primaryColor,
           brightness: Brightness.dark,
           primary: primaryColor,
-          background: backgroundColor,
           surface: surfaceColor,
+          background: bgColor,
         ),
-        
-        // AppBar
+
+        // APP BAR GLOBAL
         appBarTheme: AppBarTheme(
-          backgroundColor: backgroundColor,
-          surfaceTintColor: Colors.transparent,
+          backgroundColor: bgColor,
           elevation: 0,
-          centerTitle: false,
+          scrolledUnderElevation: 0,
           iconTheme: const IconThemeData(color: textColor),
           titleTextStyle: GoogleFonts.inter(
-            color: textColor, 
-            fontSize: 20, 
-            fontWeight: FontWeight.w700,
-            letterSpacing: -0.5
+            color: textColor, fontWeight: FontWeight.bold, fontSize: 20
           ),
         ),
 
-        // CORREÇÃO: CardTheme (minúsculo no início)
+        // CARDS (Removemos o branco daqui)
         cardTheme: CardThemeData(
           color: surfaceColor,
           elevation: 0,
+          margin: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: const BorderSide(color: borderColor),
           ),
         ),
 
-        // CORREÇÃO: DialogTheme (minúsculo no início)
+        // DIALOGS / MODAIS
         dialogTheme: DialogThemeData(
           backgroundColor: surfaceColor,
-          surfaceTintColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent, // Remove tint rosa do Material 3
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
             side: const BorderSide(color: borderColor),
           ),
         ),
 
-        // CORREÇÃO CRÍTICA AQUI:
-        // O nome do parâmetro é 'filledButtonTheme' (minúsculo)
-        // O valor é 'FilledButtonThemeData' (Classe de dados)
-        filledButtonTheme: FilledButtonThemeData(
-          style: FilledButton.styleFrom(
-            backgroundColor: primaryColor,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            textStyle: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
-          ),
-        ),
-
-        // Inputs
+        // INPUTS (TEXTFIELDS)
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: const Color(0xFF374151),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          fillColor: inputColor, // Fundo escuro para digitar
           hintStyle: const TextStyle(color: textSecColor),
           labelStyle: const TextStyle(color: textSecColor),
-          prefixIconColor: textSecColor,
+          contentPadding: const EdgeInsets.all(16),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
             borderSide: const BorderSide(color: borderColor),
@@ -127,18 +111,31 @@ class AZTTasksApp extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: primaryColor, width: 2),
+            borderSide: const BorderSide(color: primaryColor),
           ),
         ),
 
-        // Menus
+        // BOTÕES
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: primaryColor,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          ),
+        ),
+        
+        // ÍCONES
+        iconTheme: const IconThemeData(color: textSecColor),
+        
+        // MENUS
         popupMenuTheme: PopupMenuThemeData(
           color: surfaceColor,
-          textStyle: GoogleFonts.inter(color: textColor),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8), 
-            side: const BorderSide(color: borderColor)
+            borderRadius: BorderRadius.circular(8),
+            side: const BorderSide(color: borderColor),
           ),
+          textStyle: GoogleFonts.inter(color: textColor),
         ),
         
         dividerTheme: const DividerThemeData(color: borderColor, thickness: 1),
