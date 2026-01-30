@@ -22,6 +22,7 @@ class TasksPage extends StatelessWidget {
       appBar: AppBar(
         leading: IconButton(
           // Certifique-se que este caminho de asset existe no seu projeto
+          // Dica: Em modo produção, prefira Icons.grid_view para evitar erros de asset
           icon: SvgPicture.asset('lib/assets/icones/horario-comercial.svg', width: 24, height: 24, color: const Color(0xFF2EA063)),
           tooltip: "Voltar ao Hub",
           onPressed: () => Navigator.pop(context),
@@ -103,17 +104,18 @@ class TasksPage extends StatelessWidget {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
+                              // Mantendo consistente com o tema dark
+                              color: const Color(0xFF1F2937),
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: Colors.grey.shade300),
+                              border: Border.all(color: const Color(0xFF374151)),
                             ),
                             child: Row(
                               children: [
-                                Icon(Icons.add, size: 16, color: Colors.grey.shade600),
+                                Icon(Icons.add, size: 16, color: Colors.grey.shade400),
                                 const SizedBox(width: 4),
                                 Text(
                                   "Nova", 
-                                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey.shade600)
+                                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey.shade400)
                                 ),
                               ],
                             ),
@@ -195,9 +197,11 @@ class TasksPage extends StatelessWidget {
     });
   }
 
+  // --- ALTERAÇÃO SOLICITADA AQUI ---
   Widget _buildFilterTab(BuildContext context, String label, IconData icon) {
     final controller = context.read<TaskController>();
     final isSelected = context.select<TaskController, bool>((c) => c.currentFilter == label);
+    final primaryColor = Theme.of(context).primaryColor;
     
     return Padding(
       padding: const EdgeInsets.only(right: 8),
@@ -208,9 +212,11 @@ class TasksPage extends StatelessWidget {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF111827) : Colors.white,
+            // MUDANÇA: Se selecionado usa Primary (Verde), se não usa Dark Grey (Surface)
+            color: isSelected ? primaryColor : const Color(0xFF1F2937),
             borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: isSelected ? const Color(0xFF111827) : Colors.grey.shade300),
+            // MUDANÇA: Borda escura suave para não selecionados
+            border: Border.all(color: isSelected ? primaryColor : const Color(0xFF374151)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -218,7 +224,8 @@ class TasksPage extends StatelessWidget {
               Icon(
                 icon, 
                 size: 16, 
-                color: isSelected ? Colors.white : Colors.grey.shade500
+                // Ícone Branco ou Cinza Claro
+                color: isSelected ? Colors.white : Colors.grey.shade400
               ),
               const SizedBox(width: 8),
               Text(
@@ -226,7 +233,8 @@ class TasksPage extends StatelessWidget {
                 style: GoogleFonts.inter(
                   fontSize: 13,
                   fontWeight: FontWeight.w600, 
-                  color: isSelected ? Colors.white : Colors.grey.shade700
+                  // Texto Branco ou Cinza Claro
+                  color: isSelected ? Colors.white : Colors.grey.shade300
                 )
               ),
             ],
@@ -236,7 +244,7 @@ class TasksPage extends StatelessWidget {
     );
   }
 
-  // --- DIÁLOGO DE NOVA CATEGORIA COM ICON PICKER ---
+  // --- DIÁLOGO DE NOVA CATEGORIA ---
   Future<void> _showAddCategoryDialog(BuildContext context) async {
     final textController = TextEditingController();
     
