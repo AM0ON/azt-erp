@@ -30,6 +30,7 @@ class TaskController extends ChangeNotifier {
     notifyListeners();
   }
 
+  // --- SUBTAREFAS (Lógica de Negócio) ---
   void addSubTask(String taskId, String title) {
     final index = _allTasks.indexWhere((t) => t.id == taskId);
     if (index != -1) {
@@ -57,6 +58,7 @@ class TaskController extends ChangeNotifier {
     }
   }
 
+  // Lista de Categorias do Sistema
   final List<CategoryItem> _categories = [
     CategoryItem(label: 'Todas', icon: Icons.grid_view),
     CategoryItem(label: 'Pessoal', icon: Icons.person_outline),
@@ -67,7 +69,7 @@ class TaskController extends ChangeNotifier {
 
   List<CategoryItem> get categories => _categories;
 
-  // [CORREÇÃO]: Dados iniciais usam String
+  // [CORREÇÃO: Mock Data usando Strings para Categoria e Lista de Subtasks]
   final List<TaskModel> _allTasks = [
     TaskModel(
       id: '1',
@@ -75,7 +77,7 @@ class TaskController extends ChangeNotifier {
       description: "Subir alterações no servidor.",
       client: "Restaurante Bom Sabor",
       dueDate: DateTime.now().add(const Duration(days: 1)),
-      category: "Web Dev", 
+      category: "Web Dev", // Agora é String, compatível com o Model
       priority: TaskPriority.urgente,
       status: TaskStatus.inProgress,
       assignee: "Admin",
@@ -90,7 +92,7 @@ class TaskController extends ChangeNotifier {
       description: "Verificar pagamentos.",
       client: "Interno",
       dueDate: DateTime.now(),
-      category: "Financeiro", 
+      category: "Financeiro", // String
       priority: TaskPriority.alta,
       status: TaskStatus.todo,
     ),

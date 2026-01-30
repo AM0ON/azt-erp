@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 enum TaskPriority { baixa, media, alta, urgente }
-// Enum de Categoria removido: Agora usamos String dinâmica
+// [Mudança] Removemos o Enum TaskCategory para usar Strings dinâmicas
 enum TaskStatus { todo, inProgress, review, done }
 
 class TaskComment {
@@ -12,6 +12,7 @@ class TaskComment {
   TaskComment({required this.author, required this.content, required this.date});
 }
 
+// [Novo] Classe SubTask
 class SubTask {
   final String id;
   String title;
@@ -26,12 +27,12 @@ class TaskModel {
   String description;
   String? client;
   DateTime dueDate;
-  String category; // Tipo String Confirmado
+  String category; // [CORREÇÃO: String para aceitar categorias do dropdown]
   TaskPriority priority;
   TaskStatus status;
   String? assignee;
   List<TaskComment> comments;
-  List<SubTask> subtasks;
+  List<SubTask> subtasks; // [CORREÇÃO: Lista de checklist]
 
   TaskModel({
     required this.id,
@@ -46,13 +47,11 @@ class TaskModel {
     List<TaskComment>? comments,
     List<SubTask>? subtasks,
   }) : comments = comments ?? [],
-       subtasks = subtasks ?? [];
+       subtasks = subtasks ?? []; // Inicializa vazio se nulo (Corrige o erro de Null subtype)
 
+  // Setter para checkbox funcionar direto no objeto
   bool _isCompleted = false;
-  
-  bool get isCompleted {
-    return status == TaskStatus.done;
-  }
+  bool get isCompleted => status == TaskStatus.done;
   
   set isCompleted(bool value) {
     _isCompleted = value;
@@ -63,8 +62,10 @@ class TaskModel {
     }
   }
 
+  // Helper para exibir nome da categoria
   String get categoryLabel => category;
 
+  // Ícone dinâmico baseado no nome da categoria
   IconData get categoryIcon {
     final cat = category.toLowerCase().replaceAll(' ', '');
     if (cat.contains('pessoal')) return Icons.person_outline;
@@ -72,7 +73,8 @@ class TaskModel {
     if (cat.contains('web')) return Icons.code;
     if (cat.contains('financeiro')) return Icons.attach_money;
     if (cat.contains('marketing')) return Icons.campaign;
-    return Icons.bookmark_outline;
+    if (cat.contains('design')) return Icons.palette;
+    return Icons.bookmark_outline; // Ícone padrão
   }
 
   Color get priorityColor {

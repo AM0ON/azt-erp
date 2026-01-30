@@ -18,8 +18,8 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   final _descController = TextEditingController();
   final _clientController = TextEditingController();
   final _assigneeController = TextEditingController();
-  final _newSubtaskController = TextEditingController();
-  final List<String> _tempSubtasks = [];
+  final _newSubtaskController = TextEditingController(); // Novo input
+  final List<String> _tempSubtasks = []; // Lista temporária
 
   String _selectedPriority = 'media';
   String _selectedCategory = 'Pessoal'; 
@@ -35,14 +35,15 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
       _clientController.text = t.client ?? "";
       _assigneeController.text = t.assignee ?? "";
       _selectedPriority = t.priority.name;
-      _selectedCategory = t.category; // Já é String
+      _selectedCategory = t.category;
       _selectedDate = t.dueDate;
     } else {
+      // Pre-seleciona a primeira categoria válida (pula 'Todas')
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final categories = context.read<TaskController>().categories;
         if (categories.length > 1) { 
            setState(() {
-             _selectedCategory = categories[1].label; // Pega o primeiro após 'Todas'
+             _selectedCategory = categories[1].label; 
            });
         }
       });
@@ -72,7 +73,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
     final currentUser = controller.currentUserName;
     final isAssignedToMe = _assigneeController.text == currentUser;
 
-    // Remove 'Todas' da lista de escolha
+    // Gera lista de categorias dinamicamente
     final categoryItems = controller.categories
         .where((c) => c.label != 'Todas')
         .map((c) => DropdownMenuItem(value: c.label, child: Text(c.label)))
@@ -125,7 +126,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      // Garante que o valor selecionado existe na lista, senão pega o primeiro disponível
+                      // Garante valor válido
                       value: categoryItems.any((i) => i.value == _selectedCategory) ? _selectedCategory : (categoryItems.isNotEmpty ? categoryItems.first.value : null),
                       dropdownColor: Theme.of(context).cardTheme.color,
                       decoration: const InputDecoration(labelText: "Categoria"),
@@ -150,6 +151,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                 ),
               ),
               const SizedBox(height: 24),
+              // --- SEÇÃO CHECKLIST ---
               Text("Checklist Inicial", style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
               const SizedBox(height: 8),
               Row(
@@ -173,7 +175,8 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                     if (_titleController.text.isEmpty) return;
                     Navigator.pop(context, {
                       'title': _titleController.text, 'desc': _descController.text, 'client': _clientController.text, 'assignee': _assigneeController.text,
-                      'priority': _selectedPriority, 'category': _selectedCategory, 'date': _selectedDate, 'subtasks': _tempSubtasks,
+                      'priority': _selectedPriority, 'category': _selectedCategory, 'date': _selectedDate, 
+                      'subtasks': _tempSubtasks, // Envia lista de strings
                     });
                   },
                   icon: Icon(isEditing ? Icons.save : Icons.check, size: 18),

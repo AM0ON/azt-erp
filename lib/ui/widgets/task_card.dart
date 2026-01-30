@@ -15,11 +15,14 @@ class TaskCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = context.read<TaskController>();
+    
+    // Cores e Permissões
     final priorityColor = task.priorityTextColor; 
     final cardColor = Theme.of(context).cardTheme.color;
     final bool canDelete = controller.canCreateOrDelete;
     final bool canComplete = controller.canComplete(task);
 
+    // Data
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final taskDate = DateTime(task.dueDate.year, task.dueDate.month, task.dueDate.day);
@@ -34,6 +37,8 @@ class TaskCard extends StatelessWidget {
     }
     
     final dateStr = DateFormat('dd/MM', 'pt_BR').format(task.dueDate);
+
+    // Progresso
     final totalSub = task.subtasks.length;
     final completedSub = task.subtasks.where((s) => s.isCompleted).length;
     final double progress = totalSub > 0 ? completedSub / totalSub : 0.0;
@@ -45,7 +50,11 @@ class TaskCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: task.isCompleted ? Colors.grey.shade800 : priorityColor.withOpacity(0.5), width: 1.5),
+          // Borda Reforçada
+          border: Border.all(
+            color: task.isCompleted ? Colors.grey.shade800 : priorityColor.withOpacity(0.5), 
+            width: 1.5 
+          ),
           boxShadow: [
              if (!task.isCompleted && task.priority == TaskPriority.urgente)
                BoxShadow(color: priorityColor.withOpacity(0.15), blurRadius: 8, spreadRadius: 0)
@@ -85,6 +94,7 @@ class TaskCard extends StatelessWidget {
                             InkWell(onTap: canComplete ? onToggle : null, child: Opacity(opacity: canComplete ? 1.0 : 0.5, child: Container(margin: const EdgeInsets.only(top: 2, right: 10), width: 22, height: 22, decoration: BoxDecoration(border: Border.all(color: task.isCompleted ? priorityColor : Colors.grey.shade600, width: 1.5), borderRadius: BorderRadius.circular(6), color: task.isCompleted ? priorityColor : Colors.transparent), child: task.isCompleted ? const Icon(Icons.check, size: 16, color: Colors.black) : null))),
                             Expanded(child: Text(task.title, style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w800, color: task.isCompleted ? Colors.grey.shade600 : Colors.white, decoration: task.isCompleted ? TextDecoration.lineThrough : null), maxLines: 2, overflow: TextOverflow.ellipsis))
                         ]),
+                        // LOADING BAR
                         if (totalSub > 0) Padding(padding: const EdgeInsets.only(top: 12, bottom: 4), child: TweenAnimationBuilder<double>(tween: Tween<double>(begin: 0, end: progress), duration: const Duration(milliseconds: 600), curve: Curves.easeOutCubic, builder: (context, value, child) => ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: value, backgroundColor: Colors.black26, valueColor: AlwaysStoppedAnimation(task.isCompleted ? Colors.grey : const Color(0xFF2EA063)), minHeight: 6)))),
                         const SizedBox(height: 12),
                         // FOOTER
