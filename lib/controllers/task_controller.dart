@@ -8,8 +8,24 @@ class CategoryItem {
 }
 
 class TaskController extends ChangeNotifier {
+  // --- PERMISSÕES ---
+  // Mude para '_DEV' para testar as restrições de usuário comum
   final String _currentUserRole = '_CTO'; 
+  final String _currentUserName = 'Admin'; 
+
   String get userRole => _currentUserRole;
+  String get currentUserName => _currentUserName;
+
+  bool get isManager => _currentUserRole == '_CTO' || _currentUserRole == '_GESTAO';
+  
+  // Regra: Apenas Gestores criam ou excluem
+  bool get canCreateOrDelete => isManager;
+
+  // Regra: Gestores ou o próprio dono podem encerrar/editar status
+  bool canComplete(TaskModel task) {
+    if (isManager) return true;
+    return task.assignee == _currentUserName;
+  }
 
   final List<CategoryItem> _categories = [
     CategoryItem(label: 'Todas', icon: Icons.grid_view),
@@ -25,21 +41,23 @@ class TaskController extends ChangeNotifier {
     TaskModel(
       id: '1',
       title: "Deploy da Landing Page v2",
-      description: "Subir alterações no servidor e limpar cache do CDN.",
+      description: "Subir alterações no servidor.",
+      client: "Restaurante Bom Sabor",
       dueDate: DateTime.now().add(const Duration(days: 1)),
       category: TaskCategory.azorTechWeb,
       priority: TaskPriority.urgente,
-      comments: [
-        TaskComment(author: "Dev Lead", content: "Lembrar de minificar os assets.", date: DateTime.now().subtract(const Duration(hours: 2)))
-      ]
+      assignee: "Admin",
+      status: TaskStatus.inProgress, 
     ),
     TaskModel(
       id: '2',
-      title: "Revisão de contratos mensais",
-      description: "Verificar pagamentos pendentes dos clientes recorrentes.",
+      title: "Revisão de contratos",
+      description: "Verificar pagamentos.",
+      client: "AzorTech Interno",
       dueDate: DateTime.now(),
       category: TaskCategory.financeiro,
       priority: TaskPriority.alta,
+      assignee: "DevTeam",
     ),
   ];
 
@@ -58,21 +76,8 @@ class TaskController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ADICIONAR COMENTÁRIO
-  void addComment(String taskId, String content) {
-    final index = _allTasks.indexWhere((t) => t.id == taskId);
-    if (index != -1) {
-      _allTasks[index].comments.add(TaskComment(
-        author: _currentUserRole, // Usa o cargo como autor por enquanto
-        content: content,
-        date: DateTime.now()
-      ));
-      notifyListeners();
-    }
-  }
-
   void addCategory(String name, IconData icon) {
-    if (_currentUserRole == '_CTO' || _currentUserRole == '_GESTAO') {
+    if (isManager) {
       _categories.add(CategoryItem(label: name, icon: icon));
       notifyListeners();
     }
@@ -81,29 +86,53 @@ class TaskController extends ChangeNotifier {
   void toggleTaskCompletion(String id) {
     final index = _allTasks.indexWhere((t) => t.id == id);
     if (index != -1) {
-      _allTasks[index].status = _allTasks[index].status == TaskStatus.todo ? TaskStatus.done : TaskStatus.todo;
-      notifyListeners();
+      final task = _allTasks[index];
+      // Verifica permissão antes de completar
+      if (canComplete(task)) {
+        bool isDone = !task.isCompleted;
+        if (isDone) {
+          task.status = TaskStatus.done;
+        } else {
+          task.status = TaskStatus.todo;
+        }
+        task.status = isDone ? TaskStatus.done : TaskStatus.todo;
+        notifyListeners();
+      }
     }
   }
 
   void addTask(TaskModel task) {
-    _allTasks.add(task);
-    notifyListeners();
+    if (canCreateOrDelete) {
+      _allTasks.add(task);
+      notifyListeners();
+    }
   }
 
   void updateTask(TaskModel updatedTask) {
     final index = _allTasks.indexWhere((t) => t.id == updatedTask.id);
     if (index != -1) {
-      // Mantemos os comentários originais ao atualizar
-      updatedTask.comments = _allTasks[index].comments; 
       _allTasks[index] = updatedTask;
       notifyListeners();
     }
   }
 
   void deleteTask(String id) {
-    _allTasks.removeWhere((t) => t.id == id);
-    notifyListeners();
+    if (canCreateOrDelete) {
+      _allTasks.removeWhere((t) => t.id == id);
+      notifyListeners();
+    }
+  }
+
+  void addComment(String taskId, String content) {
+    final index = _allTasks.indexWhere((t) => t.id == taskId);
+    if (index != -1) {
+      _allTasks[index].comments.add(TaskComment(
+        author: _currentUserName,
+        content: content,
+        date: DateTime.now()
+      ));
+      notifyListeners();
+    }
   }
 
   bool _matchesFilter(TaskModel task) {
