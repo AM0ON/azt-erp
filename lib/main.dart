@@ -1,10 +1,9 @@
-import 'package:azt_tasks/pages/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'controllers/task_controller.dart';
-import 'pages/login_page.dart';
+import 'pages/login_page.dart'; // Ajuste o import se sua pasta for ui/pages ou pages
 
 void main() {
   runApp(
@@ -22,16 +21,15 @@ class AZTTasksApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // --- PALETA DE CORES DARK MODE DEFINITIVA ---
-    const primaryColor = Color(0xFF2EA063);      // Verde AZT
-    const bgColor = Color(0xFF0B0F19);           // Fundo da Tela (Quase preto)
-    const surfaceColor = Color(0xFF151B2B);      // Cards e Dialogs (Cinza Azulado Escuro)
-    const inputColor = Color(0xFF1F2937);        // Fundo dos Inputs
-    const borderColor = Color(0xFF2D3748);       // Bordas sutis
-    const textColor = Color(0xFFF3F4F6);         // Branco Gelo (Leitura)
-    const textSecColor = Color(0xFF9CA3AF);      // Cinza Texto Secundário
+    // PALETA DEEP DARK (Sem Branco)
+    const primaryColor = Color(0xFF2EA063);      // Verde Neon
+    const bgColor = Color(0xFF0F172A);           // Fundo Profundo (Slate 900)
+    const surfaceColor = Color(0xFF1E293B);      // Cards/Dialogs (Slate 800)
+    const inputColor = Color(0xFF334155);        // Inputs (Slate 700)
+    const borderColor = Color(0xFF475569);       // Bordas (Slate 600)
+    const textColor = Color(0xFFF1F5F9);         // Texto Principal (Slate 100)
+    const textSecColor = Color(0xFF94A3B8);      // Texto Secundário (Slate 400)
 
-    // Tipografia Global
     final textTheme = GoogleFonts.interTextTheme(Theme.of(context).textTheme).apply(
       bodyColor: textColor,
       displayColor: textColor,
@@ -52,93 +50,64 @@ class AZTTasksApp extends StatelessWidget {
         brightness: Brightness.dark,
         scaffoldBackgroundColor: bgColor,
         textTheme: textTheme,
-        primaryColor: primaryColor,
         
         colorScheme: ColorScheme.fromSeed(
           seedColor: primaryColor,
           brightness: Brightness.dark,
           primary: primaryColor,
-          surface: surfaceColor,
           background: bgColor,
+          surface: surfaceColor,
         ),
 
-        // APP BAR GLOBAL
         appBarTheme: AppBarTheme(
           backgroundColor: bgColor,
+          surfaceTintColor: Colors.transparent,
           elevation: 0,
-          scrolledUnderElevation: 0,
           iconTheme: const IconThemeData(color: textColor),
-          titleTextStyle: GoogleFonts.inter(
-            color: textColor, fontWeight: FontWeight.bold, fontSize: 20
-          ),
+          titleTextStyle: GoogleFonts.inter(color: textColor, fontSize: 20, fontWeight: FontWeight.bold),
         ),
 
-        // CARDS (Removemos o branco daqui)
         cardTheme: CardThemeData(
           color: surfaceColor,
           elevation: 0,
-          margin: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: const BorderSide(color: borderColor),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: borderColor)),
         ),
 
-        // DIALOGS / MODAIS
         dialogTheme: DialogThemeData(
           backgroundColor: surfaceColor,
-          surfaceTintColor: Colors.transparent, // Remove tint rosa do Material 3
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: borderColor),
-          ),
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: borderColor)),
         ),
 
-        // INPUTS (TEXTFIELDS)
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: inputColor, // Fundo escuro para digitar
+          fillColor: inputColor,
           hintStyle: const TextStyle(color: textSecColor),
           labelStyle: const TextStyle(color: textSecColor),
-          contentPadding: const EdgeInsets.all(16),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: borderColor),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: borderColor),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: primaryColor),
-          ),
+          prefixIconColor: textSecColor,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: borderColor)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: borderColor)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: primaryColor)),
         ),
 
-        // BOTÕES
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
             backgroundColor: primaryColor,
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            textStyle: GoogleFonts.inter(fontWeight: FontWeight.w600),
           ),
         ),
-        
-        // ÍCONES
+
         iconTheme: const IconThemeData(color: textSecColor),
+        dividerTheme: const DividerThemeData(color: borderColor),
         
-        // MENUS
         popupMenuTheme: PopupMenuThemeData(
           color: surfaceColor,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-            side: const BorderSide(color: borderColor),
-          ),
           textStyle: GoogleFonts.inter(color: textColor),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: const BorderSide(color: borderColor)),
         ),
-        
-        dividerTheme: const DividerThemeData(color: borderColor, thickness: 1),
       ),
       home: const LoginPage(),
     );

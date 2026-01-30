@@ -16,7 +16,7 @@ class TaskModel {
   final String id;
   String title;
   String description;
-  String? client; // Novo Campo
+  String? client; // [FINALIZADO] Campo Cliente
   DateTime dueDate;
   TaskCategory category;
   TaskPriority priority;

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../../controllers/task_controller.dart';
-import '../pages/task_page.dart';
-import 'admin_page.dart';
+import '../controllers/task_controller.dart';
+import 'task_page.dart'; // Ajuste o path se necessário
+import 'admin_page.dart'; // Ajuste o path se necessário
 
 class HubPage extends StatelessWidget {
   const HubPage({super.key});
@@ -12,10 +12,13 @@ class HubPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final taskController = context.watch<TaskController>();
     final activeTasksCount = taskController.activeTasks.length;
-    final theme = Theme.of(context);
+    // Pega as cores do tema escuro
+    final bgColor = Theme.of(context).scaffoldBackgroundColor;
+    final surfaceColor = Theme.of(context).cardTheme.color;
+    final borderColor = Theme.of(context).dividerTheme.color;
 
     return Scaffold(
-      // Fundo escuro automático do main.dart
+      backgroundColor: bgColor, // Garante fundo escuro
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -30,7 +33,6 @@ class HubPage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // MÉTRICAS
                       Row(
                         children: [
                           _buildStatCard(context, "Tasks Ativas", activeTasksCount.toString(), Icons.data_usage, Colors.greenAccent),
@@ -43,18 +45,9 @@ class HubPage extends StatelessWidget {
                       
                       const SizedBox(height: 40),
                       
-                      Text(
-                        "APLICATIVOS",
-                        style: GoogleFonts.jetBrainsMono(
-                          fontSize: 12, 
-                          fontWeight: FontWeight.bold, 
-                          color: Colors.grey[500],
-                          letterSpacing: 1.5
-                        ),
-                      ),
+                      Text("APLICATIVOS", style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey[500], letterSpacing: 1.5)),
                       const SizedBox(height: 16),
 
-                      // GRID
                       LayoutBuilder(
                         builder: (context, constraints) {
                           return Wrap(
@@ -84,9 +77,9 @@ class HubPage extends StatelessWidget {
     return Container(
       width: double.infinity,
       height: 280,
-      decoration: const BoxDecoration(
-        color: Colors.black, // Header Totalmente Preto para contraste
-        border: Border(bottom: BorderSide(color: Color(0xFF2D3748)))
+      decoration: BoxDecoration(
+        color: Colors.black, // Header Preto Absoluto
+        border: Border(bottom: BorderSide(color: Theme.of(context).dividerTheme.color!))
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
@@ -121,9 +114,9 @@ class HubPage extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardTheme.color, // Usa cor do tema Surface
+          color: Theme.of(context).cardTheme.color, // Surface Color
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF2D3748)),
+          border: Border.all(color: Theme.of(context).dividerTheme.color!),
         ),
         child: Row(
           children: [
@@ -144,7 +137,7 @@ class HubPage extends StatelessWidget {
 
   Widget _buildAppCard(BuildContext context, {required String title, required String subtitle, required IconData icon, required Color color, Widget? destination, bool isLocked = false, String? badge}) {
     return Material(
-      color: Theme.of(context).cardTheme.color, // Usa cor Surface
+      color: Theme.of(context).cardTheme.color, // Surface Color
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: isLocked ? null : () { if(destination != null) Navigator.push(context, MaterialPageRoute(builder: (_) => destination)); },
@@ -155,7 +148,7 @@ class HubPage extends StatelessWidget {
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF2D3748)),
+            border: Border.all(color: Theme.of(context).dividerTheme.color!),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,10 +160,7 @@ class HubPage extends StatelessWidget {
                   if (badge != null)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: color.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
+                      decoration: BoxDecoration(color: color.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
                       child: Text(badge, style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: color)),
                     )
                 ],
