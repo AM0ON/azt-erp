@@ -26,7 +26,7 @@ class TaskModel {
   DateTime dueDate;
   String category;
   TaskPriority priority;
-  String status; // Alterado para String para suportar Kanban dinâmico
+  String status; // String para colunas dinâmicas
   String? assignee;
   List<TaskComment> comments;
   List<SubTask> subtasks;
@@ -39,14 +39,14 @@ class TaskModel {
     required this.dueDate,
     required this.category,
     required this.priority,
-    required this.status,
+    required this.status, // Obrigatório
     this.assignee,
     List<TaskComment>? comments,
     List<SubTask>? subtasks,
   }) : comments = comments ?? [],
        subtasks = subtasks ?? [];
 
-  // Lógica de compatibilidade para checkboxes
+  // Lógica isCompleted baseada na String "Concluído"
   bool get isCompleted => status == "Concluído";
   
   set isCompleted(bool value) {
@@ -60,14 +60,13 @@ class TaskModel {
   String get categoryLabel => category;
   String get statusLabel => status;
 
-  // Preserva o design das cores baseado no nome do status
+  // Cor segura
   Color get statusColor {
     final s = status.toLowerCase();
-    if (s.contains('fazer') || s.contains('backlog') || s.contains('todo')) return const Color(0xFF64748B);
-    if (s.contains('progresso') || s.contains('progress')) return const Color(0xFF3B82F6);
+    if (s.contains('fazer') || s.contains('backlog')) return const Color(0xFF64748B);
+    if (s.contains('progresso')) return const Color(0xFF3B82F6);
     if (s.contains('análise') || s.contains('review')) return const Color(0xFFF59E0B);
     if (s.contains('concluído') || s.contains('done')) return const Color(0xFF10B981);
-    // Cor consistente para novos status criados pelo usuário
     return Colors.primaries[status.hashCode % Colors.primaries.length];
   }
 

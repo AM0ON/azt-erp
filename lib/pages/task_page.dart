@@ -124,7 +124,7 @@ class TasksPage extends StatelessWidget {
                   )
                 ),
                 
-                // Botão "Adicionar Quadro" Estilizado
+                // Botão "Adicionar Quadro" (Corrigido: BorderStyle.solid)
                 if (isManager)
                   Padding(
                     padding: const EdgeInsets.only(top: 0),
@@ -137,7 +137,8 @@ class TasksPage extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.02),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white10, style: BorderStyle.values[1]),
+                          // [CORREÇÃO] Removido style: BorderStyle.dashed
+                          border: Border.all(color: Colors.white10, width: 1.5), 
                         ),
                         child: Center(
                           child: Row(
@@ -153,7 +154,6 @@ class TasksPage extends StatelessWidget {
                     ),
                   ),
                 
-                // [CORREÇÃO AQUI] Usando SizedBox normal em vez de .fromSize com width nomeado
                 const SizedBox(width: 48), 
               ],
             ),
@@ -181,9 +181,9 @@ class TasksPage extends StatelessWidget {
       onAccept: (id) => controller.updateTaskStatus(id, title),
       builder: (context, candidate, rejected) {
         return Container(
-          width: 340, // Coluna mais larga
+          width: 340, 
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.2), // Fundo bem sutil
+            color: Colors.black.withOpacity(0.2), 
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: candidate.isNotEmpty ? color.withOpacity(0.5) : Colors.transparent,
@@ -223,9 +223,12 @@ class TasksPage extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   itemCount: tasks.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (ctx, i) => LongPressDraggable<String>(
+                  itemBuilder: (ctx, i) => Draggable<String>(
                     data: tasks[i].id,
-                    feedback: SizedBox(width: 300, child: Opacity(opacity: 0.9, child: TaskCard(task: tasks[i], onToggle: () {}))),
+                    feedback: Material(
+                      color: Colors.transparent,
+                      child: SizedBox(width: 300, child: Opacity(opacity: 0.9, child: TaskCard(task: tasks[i], onToggle: () {}))),
+                    ),
                     childWhenDragging: Opacity(opacity: 0.3, child: TaskCard(task: tasks[i], onToggle: () {})),
                     child: TaskCard(task: tasks[i], onToggle: () => controller.toggleTaskCompletion(tasks[i].id))
                   )

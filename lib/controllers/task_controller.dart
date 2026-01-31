@@ -22,7 +22,7 @@ class TaskController extends ChangeNotifier {
     return task.assignee == _currentUserName;
   }
 
-  // --- STATUS (Colunas do Kanban) ---
+  // --- STATUS (COLUNAS DINÂMICAS) ---
   final List<String> _statuses = ["A Fazer", "Em Progresso", "Em Análise", "Concluído"];
   List<String> get statuses => _statuses;
 
@@ -33,15 +33,14 @@ class TaskController extends ChangeNotifier {
     }
   }
 
-  void removeStatus(String status) {
+  void removeStatus(String statusToRemove) {
     if (isManager && _statuses.length > 1) {
-      if (_allTasks.any((t) => t.status == status)) {
-        // Move tarefas para a primeira coluna antes de deletar
-        for (var t in _allTasks) {
-          if (t.status == status) t.status = _statuses[0];
+      if (_allTasks.any((t) => t.status == statusToRemove)) {
+        for (var task in _allTasks) {
+          if (task.status == statusToRemove) task.status = _statuses[0];
         }
       }
-      _statuses.remove(status);
+      _statuses.remove(statusToRemove);
       notifyListeners();
     }
   }
@@ -67,14 +66,14 @@ class TaskController extends ChangeNotifier {
   void removeCategory(String name) {
     if (isManager && name != 'Todas') {
       _categories.removeWhere((c) => c.label == name);
-      for (var t in _allTasks) {
-        if (t.category == name) t.category = 'Pessoal';
+      for (var task in _allTasks) {
+        if (task.category == name) task.category = 'Pessoal';
       }
       notifyListeners();
     }
   }
 
-  // --- TAREFAS (Mock Data corrigido para String) ---
+  // --- TAREFAS (Mock Data Ajustado para String) ---
   final List<TaskModel> _allTasks = [
     TaskModel(
       id: '1',
@@ -84,7 +83,7 @@ class TaskController extends ChangeNotifier {
       dueDate: DateTime.now().add(const Duration(days: 1)),
       category: "Web Dev", 
       priority: TaskPriority.urgente,
-      status: "Em Progresso", // String
+      status: "Em Progresso", 
       assignee: "Admin",
       subtasks: [
         SubTask(id: 's1', title: 'Minificar Assets', isCompleted: true),
@@ -99,13 +98,13 @@ class TaskController extends ChangeNotifier {
       dueDate: DateTime.now(),
       category: "Financeiro", 
       priority: TaskPriority.alta,
-      status: "A Fazer", // String
+      status: "A Fazer", 
     ),
   ];
 
   String _selectedCategoryFilter = "Todas";
 
-  // Getters essenciais para o HubPage e Kanban
+  // [CRÍTICO] Getters restaurados para o HubPage
   List<TaskModel> get activeTasks => _allTasks.where((t) => !t.isCompleted).toList();
   List<TaskModel> get completedTasks => _allTasks.where((t) => t.isCompleted && _matchesFilter(t)).toList();
   List<TaskModel> get filteredTasks => _allTasks.where((t) => _matchesFilter(t)).toList();
@@ -139,6 +138,7 @@ class TaskController extends ChangeNotifier {
 
   void addTask(TaskModel task) { if (canCreateOrDelete) { _allTasks.add(task); notifyListeners(); } }
   
+  // [CRÍTICO] Método restaurado
   void updateTask(TaskModel task) { 
     final index = _allTasks.indexWhere((t) => t.id == task.id);
     if (index != -1) { _allTasks[index] = task; notifyListeners(); }
@@ -146,6 +146,7 @@ class TaskController extends ChangeNotifier {
   
   void deleteTask(String id) { if (canCreateOrDelete) { _allTasks.removeWhere((t) => t.id == id); notifyListeners(); } }
   
+  // [CRÍTICO] Método restaurado
   void addComment(String taskId, String content) {
     final index = _allTasks.indexWhere((t) => t.id == taskId);
     if (index != -1) {
@@ -154,7 +155,7 @@ class TaskController extends ChangeNotifier {
     }
   }
 
-  // Métodos de Subtarefas
+  // --- SUBTAREFAS ---
   void addSubTask(String taskId, String title) {
     final index = _allTasks.indexWhere((t) => t.id == taskId);
     if (index != -1) {
@@ -163,26 +164,30 @@ class TaskController extends ChangeNotifier {
     }
   }
 
-  void toggleSubTask(String taskId, String subId) {
-    final index = _allTasks.indexWhere((t) => t.id == taskId);
-    if (index != -1) {
-      final sub = _allTasks[index].subtasks.firstWhere((s) => s.id == subId);
-      sub.isCompleted = !sub.isCompleted;
+  // [CRÍTICO] Método restaurado
+  void toggleSubTask(String taskId, String subTaskId) {
+    final taskIndex = _allTasks.indexWhere((t) => t.id == taskId);
+    if (taskIndex != -1) {
+      final subIndex = _allTasks[taskIndex].subtasks.indexWhere((s) => s.id == subTaskId);
+      if (subIndex != -1) {
+        _allTasks[taskIndex].subtasks[subIndex].isCompleted = !_allTasks[taskIndex].subtasks[subIndex].isCompleted;
+        notifyListeners();
+      }
+    }
+  }
+
+  // [CRÍTICO] Método restaurado
+  void removeSubTask(String taskId, String subTaskId) {
+    final taskIndex = _allTasks.indexWhere((t) => t.id == taskId);
+    if (taskIndex != -1) {
+      _allTasks[taskIndex].subtasks.removeWhere((s) => s.id == subTaskId);
       notifyListeners();
     }
   }
 
-  void removeSubTask(String taskId, String subId) {
-    final index = _allTasks.indexWhere((t) => t.id == taskId);
-    if (index != -1) {
-      _allTasks[index].subtasks.removeWhere((s) => s.id == subId);
-      notifyListeners();
-    }
-  }
-
-  bool _isKanbanMode = true;
+  bool _isKanbanMode = true; 
   bool get isKanbanMode => _isKanbanMode;
-  void toggleViewMode() {} // Modo único agora
+  void toggleViewMode() {}
 
   bool _matchesFilter(TaskModel task) {
     if (_selectedCategoryFilter == "Todas") return true;
