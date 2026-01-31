@@ -15,30 +15,21 @@ class TaskCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = context.read<TaskController>();
-    
-    // Cores e Permissões
-    final priorityColor = task.priorityTextColor; 
-    final cardColor = Theme.of(context).cardTheme.color;
-    final bool canDelete = controller.canCreateOrDelete;
-    final bool canComplete = controller.canComplete(task);
+    final canDelete = controller.canCreateOrDelete;
+    final canComplete = controller.canComplete(task);
 
-    // Data
+    // Lógica de Cores
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final taskDate = DateTime(task.dueDate.year, task.dueDate.month, task.dueDate.day);
     
     Color dateColor = Colors.grey[500]!;
     if (!task.isCompleted) {
-      if (taskDate.isBefore(today)) {
-        dateColor = Colors.redAccent; 
-      } else if (taskDate.isAtSameMomentAs(today)) {
-        dateColor = Colors.orangeAccent;
-      }
+      if (taskDate.isBefore(today)) dateColor = const Color(0xFFEF4444); // Red-500
+      else if (taskDate.isAtSameMomentAs(today)) dateColor = const Color(0xFFF59E0B); // Amber-500
     }
     
-    final dateStr = DateFormat('dd/MM', 'pt_BR').format(task.dueDate);
-
-    // Progresso
+    final dateStr = DateFormat('dd MMM', 'pt_BR').format(task.dueDate).toUpperCase();
     final totalSub = task.subtasks.length;
     final completedSub = task.subtasks.where((s) => s.isCompleted).length;
     final double progress = totalSub > 0 ? completedSub / totalSub : 0.0;
@@ -48,76 +39,158 @@ class TaskCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: Container(
         decoration: BoxDecoration(
-          color: cardColor,
+          color: const Color(0xFF1F2937), // Surface Dark
           borderRadius: BorderRadius.circular(12),
-          // Borda Reforçada
           border: Border.all(
-            color: task.isCompleted ? Colors.grey.shade800 : priorityColor.withOpacity(0.5), 
-            width: 1.5 
+            color: task.isCompleted ? Colors.transparent : Colors.white.withOpacity(0.08),
+            width: 1
           ),
           boxShadow: [
-             if (!task.isCompleted && task.priority == TaskPriority.urgente)
-               BoxShadow(color: priorityColor.withOpacity(0.15), blurRadius: 8, spreadRadius: 0)
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 4)
+            )
           ]
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // BARRA LATERAL COLORIDA (Indicador de Prioridade)
+            Stack(
               children: [
-                Container(width: 5, color: task.isCompleted ? Colors.grey.shade800 : priorityColor),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // HEADER
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(child: Row(children: [
-                                Flexible(child: _buildMiniBadge(task.categoryLabel, task.categoryIcon)),
-                                if (task.client != null && task.client!.isNotEmpty) ...[
-                                  const SizedBox(width: 8), 
-                                  Flexible(child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3), decoration: BoxDecoration(color: Colors.blueAccent.withOpacity(0.15), borderRadius: BorderRadius.circular(4)), child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.business, size: 10, color: Colors.blueAccent), const SizedBox(width: 4), Flexible(child: Text(task.client!.toUpperCase(), style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.blueAccent), overflow: TextOverflow.ellipsis))])) )
-                                ]
-                            ])),
-                            if (canDelete) SizedBox(height: 24, width: 24, child: PopupMenuButton<String>(padding: EdgeInsets.zero, icon: Icon(Icons.more_horiz, size: 18, color: Colors.grey[500]), onSelected: (value) { if (value == 'delete') controller.deleteTask(task.id); }, itemBuilder: (context) => [const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, size: 16, color: Colors.redAccent), SizedBox(width: 8), Text("Excluir", style: TextStyle(color: Colors.redAccent))]))]))
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        // BODY
-                        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            InkWell(onTap: canComplete ? onToggle : null, child: Opacity(opacity: canComplete ? 1.0 : 0.5, child: Container(margin: const EdgeInsets.only(top: 2, right: 10), width: 22, height: 22, decoration: BoxDecoration(border: Border.all(color: task.isCompleted ? priorityColor : Colors.grey.shade600, width: 1.5), borderRadius: BorderRadius.circular(6), color: task.isCompleted ? priorityColor : Colors.transparent), child: task.isCompleted ? const Icon(Icons.check, size: 16, color: Colors.black) : null))),
-                            Expanded(child: Text(task.title, style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w800, color: task.isCompleted ? Colors.grey.shade600 : Colors.white, decoration: task.isCompleted ? TextDecoration.lineThrough : null), maxLines: 2, overflow: TextOverflow.ellipsis))
-                        ]),
-                        // LOADING BAR
-                        if (totalSub > 0) Padding(padding: const EdgeInsets.only(top: 12, bottom: 4), child: TweenAnimationBuilder<double>(tween: Tween<double>(begin: 0, end: progress), duration: const Duration(milliseconds: 600), curve: Curves.easeOutCubic, builder: (context, value, child) => ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: value, backgroundColor: Colors.black26, valueColor: AlwaysStoppedAnimation(task.isCompleted ? Colors.grey : const Color(0xFF2EA063)), minHeight: 6)))),
-                        const SizedBox(height: 12),
-                        // FOOTER
-                        Row(children: [
-                            if (task.assignee != null && task.assignee!.isNotEmpty) Container(padding: const EdgeInsets.all(5), margin: const EdgeInsets.only(right: 8), decoration: const BoxDecoration(color: Color(0xFF374151), shape: BoxShape.circle), child: Text(task.assignee![0].toUpperCase(), style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold))),
-                            Icon(Icons.calendar_today, size: 13, color: dateColor), const SizedBox(width: 4), Text(dateStr, style: GoogleFonts.jetBrainsMono(fontSize: 11, color: dateColor, fontWeight: FontWeight.w800)),
-                            const Spacer(),
-                            if (totalSub > 0) ...[Icon(Icons.checklist, size: 14, color: Colors.grey[400]), const SizedBox(width: 4), Text("$completedSub/$totalSub", style: GoogleFonts.jetBrainsMono(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey[400])), const SizedBox(width: 12)],
-                            Flexible(child: Text(task.priorityLabel.toUpperCase(), style: GoogleFonts.jetBrainsMono(fontSize: 11, color: priorityColor, fontWeight: FontWeight.w900), overflow: TextOverflow.ellipsis))
-                        ])
-                      ],
-                    ),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // --- HEADER: TAGS ---
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Wrap(
+                              spacing: 6, runSpacing: 6,
+                              children: [
+                                _buildTag(task.categoryLabel, task.categoryIcon, Colors.grey[400]!),
+                                _buildTag(task.statusLabel, Icons.circle, task.statusColor, isStatus: true),
+                                if (task.client != null && task.client!.isNotEmpty)
+                                  _buildTag(task.client!, Icons.business, Colors.blueAccent),
+                              ],
+                            ),
+                          ),
+                          if (canDelete) 
+                            GestureDetector(
+                              onTap: () => controller.deleteTask(task.id),
+                              child: Icon(Icons.more_horiz, size: 16, color: Colors.grey[600])
+                            )
+                        ],
+                      ),
+                      
+                      const SizedBox(height: 12),
+                      
+                      // --- TÍTULO ---
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          InkWell(
+                            onTap: canComplete ? onToggle : null,
+                            child: Container(
+                              margin: const EdgeInsets.only(top: 2, right: 10),
+                              width: 20, height: 20,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: task.isCompleted ? task.priorityTextColor : Colors.grey[600]!, width: 2),
+                                color: task.isCompleted ? task.priorityTextColor : Colors.transparent
+                              ),
+                              child: task.isCompleted ? const Icon(Icons.check, size: 14, color: Colors.black) : null,
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              task.title,
+                              style: GoogleFonts.inter(
+                                fontSize: 15, 
+                                fontWeight: FontWeight.w600, 
+                                color: task.isCompleted ? Colors.grey[500] : Colors.white,
+                                decoration: task.isCompleted ? TextDecoration.lineThrough : null,
+                                height: 1.3
+                              ),
+                              maxLines: 3, 
+                              overflow: TextOverflow.ellipsis
+                            ),
+                          ),
+                        ],
+                      ),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // --- FOOTER ---
+                      Row(
+                        children: [
+                          if (task.assignee != null)
+                            Container(
+                              margin: const EdgeInsets.only(right: 10),
+                              padding: const EdgeInsets.all(6),
+                              decoration: const BoxDecoration(color: Color(0xFF374151), shape: BoxShape.circle),
+                              child: Text(task.assignee![0].toUpperCase(), style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold)),
+                            ),
+                          
+                          Icon(Icons.access_time_rounded, size: 14, color: dateColor),
+                          const SizedBox(width: 4),
+                          Text(dateStr, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: dateColor)),
+                          
+                          const Spacer(),
+                          
+                          if (totalSub > 0) ...[
+                            Icon(Icons.checklist_rounded, size: 16, color: Colors.grey[500]),
+                            const SizedBox(width: 4),
+                            Text("$completedSub/$totalSub", style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey[500])),
+                          ]
+                        ],
+                      )
+                    ],
                   ),
                 ),
+                // Faixa de Prioridade Lateral
+                Positioned(left: 0, top: 12, bottom: 12, child: Container(width: 3, decoration: BoxDecoration(color: task.priorityTextColor, borderRadius: const BorderRadius.only(topRight: Radius.circular(2), bottomRight: Radius.circular(2))))),
               ],
             ),
-          ),
+            
+            // Barra de Progresso
+            if (totalSub > 0)
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  backgroundColor: Colors.black12,
+                  valueColor: AlwaysStoppedAnimation(task.isCompleted ? Colors.grey : const Color(0xFF2EA063)),
+                  minHeight: 4,
+                ),
+              ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildMiniBadge(String text, IconData icon) {
-    return Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3), decoration: BoxDecoration(color: const Color(0xFF111827), borderRadius: BorderRadius.circular(4), border: Border.all(color: const Color(0xFF374151))), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, size: 10, color: Colors.grey[400]), const SizedBox(width: 4), Flexible(child: Text(text.toUpperCase(), style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.grey[300]), overflow: TextOverflow.ellipsis))]));
+  Widget _buildTag(String text, IconData icon, Color color, {bool isStatus = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: isStatus ? color.withOpacity(0.1) : const Color(0xFF111827),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: isStatus ? color.withOpacity(0.2) : Colors.white10)
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (!isStatus) ...[Icon(icon, size: 10, color: color), const SizedBox(width: 4)],
+          Text(
+            text.toUpperCase(), 
+            style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w800, color: isStatus ? color : Colors.grey[400])
+          ),
+        ],
+      ),
+    );
   }
 }

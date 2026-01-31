@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
 enum TaskPriority { baixa, media, alta, urgente }
-// [Mudança] Removemos o Enum TaskCategory para usar Strings dinâmicas
-enum TaskStatus { todo, inProgress, review, done }
 
 class TaskComment {
   final String author;
@@ -12,7 +10,6 @@ class TaskComment {
   TaskComment({required this.author, required this.content, required this.date});
 }
 
-// [Novo] Classe SubTask
 class SubTask {
   final String id;
   String title;
@@ -27,12 +24,12 @@ class TaskModel {
   String description;
   String? client;
   DateTime dueDate;
-  String category; // [CORREÇÃO: String para aceitar categorias do dropdown]
+  String category;
   TaskPriority priority;
-  TaskStatus status;
+  String status; // Alterado para String para suportar Kanban dinâmico
   String? assignee;
   List<TaskComment> comments;
-  List<SubTask> subtasks; // [CORREÇÃO: Lista de checklist]
+  List<SubTask> subtasks;
 
   TaskModel({
     required this.id,
@@ -42,39 +39,45 @@ class TaskModel {
     required this.dueDate,
     required this.category,
     required this.priority,
-    this.status = TaskStatus.todo,
+    required this.status,
     this.assignee,
     List<TaskComment>? comments,
     List<SubTask>? subtasks,
   }) : comments = comments ?? [],
-       subtasks = subtasks ?? []; // Inicializa vazio se nulo (Corrige o erro de Null subtype)
+       subtasks = subtasks ?? [];
 
-  // Setter para checkbox funcionar direto no objeto
-  bool _isCompleted = false;
-  bool get isCompleted => status == TaskStatus.done;
+  // Lógica de compatibilidade para checkboxes
+  bool get isCompleted => status == "Concluído";
   
   set isCompleted(bool value) {
-    _isCompleted = value;
     if (value) {
-      status = TaskStatus.done;
+      status = "Concluído";
     } else {
-      if (status == TaskStatus.done) status = TaskStatus.todo;
+      status = "A Fazer";
     }
   }
 
-  // Helper para exibir nome da categoria
   String get categoryLabel => category;
+  String get statusLabel => status;
 
-  // Ícone dinâmico baseado no nome da categoria
+  // Preserva o design das cores baseado no nome do status
+  Color get statusColor {
+    final s = status.toLowerCase();
+    if (s.contains('fazer') || s.contains('backlog') || s.contains('todo')) return const Color(0xFF64748B);
+    if (s.contains('progresso') || s.contains('progress')) return const Color(0xFF3B82F6);
+    if (s.contains('análise') || s.contains('review')) return const Color(0xFFF59E0B);
+    if (s.contains('concluído') || s.contains('done')) return const Color(0xFF10B981);
+    // Cor consistente para novos status criados pelo usuário
+    return Colors.primaries[status.hashCode % Colors.primaries.length];
+  }
+
   IconData get categoryIcon {
     final cat = category.toLowerCase().replaceAll(' ', '');
     if (cat.contains('pessoal')) return Icons.person_outline;
     if (cat.contains('produção') || cat.contains('producao')) return Icons.layers_outlined;
     if (cat.contains('web')) return Icons.code;
     if (cat.contains('financeiro')) return Icons.attach_money;
-    if (cat.contains('marketing')) return Icons.campaign;
-    if (cat.contains('design')) return Icons.palette;
-    return Icons.bookmark_outline; // Ícone padrão
+    return Icons.bookmark_outline;
   }
 
   Color get priorityColor {

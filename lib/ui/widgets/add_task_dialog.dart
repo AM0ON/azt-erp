@@ -18,8 +18,8 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   final _descController = TextEditingController();
   final _clientController = TextEditingController();
   final _assigneeController = TextEditingController();
-  final _newSubtaskController = TextEditingController(); // Novo input
-  final List<String> _tempSubtasks = []; // Lista temporária
+  final _newSubtaskController = TextEditingController();
+  final List<String> _tempSubtasks = [];
 
   String _selectedPriority = 'media';
   String _selectedCategory = 'Pessoal'; 
@@ -38,13 +38,10 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
       _selectedCategory = t.category;
       _selectedDate = t.dueDate;
     } else {
-      // Pre-seleciona a primeira categoria válida (pula 'Todas')
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        final categories = context.read<TaskController>().categories;
-        if (categories.length > 1) { 
-           setState(() {
-             _selectedCategory = categories[1].label; 
-           });
+        if(mounted) {
+          final cats = context.read<TaskController>().categories;
+          if(cats.length > 1) setState(() => _selectedCategory = cats[1].label);
         }
       });
     }
@@ -52,141 +49,142 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
 
   void _addSubtaskItem() {
     if (_newSubtaskController.text.trim().isNotEmpty) {
-      setState(() {
-        _tempSubtasks.add(_newSubtaskController.text.trim());
-        _newSubtaskController.clear();
-      });
+      setState(() { _tempSubtasks.add(_newSubtaskController.text.trim()); _newSubtaskController.clear(); });
     }
-  }
-
-  void _removeSubtaskItem(int index) {
-    setState(() {
-      _tempSubtasks.removeAt(index);
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<TaskController>();
     final isManager = controller.isManager;
-    final isEditing = widget.taskToEdit != null;
-    final currentUser = controller.currentUserName;
-    final isAssignedToMe = _assigneeController.text == currentUser;
-
-    // Gera lista de categorias dinamicamente
-    final categoryItems = controller.categories
-        .where((c) => c.label != 'Todas')
-        .map((c) => DropdownMenuItem(value: c.label, child: Text(c.label)))
-        .toList();
+    final categories = controller.categories.where((c) => c.label != 'Todas').map((c) => DropdownMenuItem(value: c.label, child: Text(c.label))).toList();
 
     return Dialog(
+      backgroundColor: const Color(0xFF1F2937),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
-        width: 600,
+        width: 550,
         padding: const EdgeInsets.all(32),
         child: SingleChildScrollView(
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(isEditing ? "Editar Tarefa" : "Nova Tarefa", style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
-                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                  Text(widget.taskToEdit != null ? "Editar Tarefa" : "Nova Tarefa", style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                  IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, color: Colors.grey))
                 ],
               ),
               const SizedBox(height: 24),
-              TextField(controller: _titleController, decoration: const InputDecoration(labelText: "Título")),
-              const SizedBox(height: 16),
-              TextField(controller: _clientController, decoration: const InputDecoration(labelText: "Cliente", prefixIcon: Icon(Icons.business))),
-              const SizedBox(height: 16),
-              TextField(controller: _descController, decoration: const InputDecoration(labelText: "Descrição"), maxLines: 2),
+              _buildInput("Título", _titleController, autoFocus: true),
               const SizedBox(height: 16),
               Row(children: [
-                  Expanded(child: TextField(controller: _assigneeController, enabled: isManager, decoration: InputDecoration(labelText: "Responsável", prefixIcon: const Icon(Icons.person), filled: !isManager, fillColor: !isManager ? Colors.black26 : const Color(0xFF1F2937)))),
-                  if (!isManager) ...[const SizedBox(width: 8), TextButton.icon(onPressed: () => setState(() => _assigneeController.text = isAssignedToMe ? "" : currentUser), icon: Icon(isAssignedToMe ? Icons.close : Icons.back_hand, color: isAssignedToMe ? Colors.redAccent : Colors.blueAccent), label: Text(isAssignedToMe ? "Soltar" : "Pegar"))]
+                Expanded(child: _buildInput("Cliente", _clientController, icon: Icons.business)),
+                const SizedBox(width: 16),
+                Expanded(child: _buildInput("Responsável", _assigneeController, icon: Icons.person, enabled: isManager)),
               ]),
               const SizedBox(height: 16),
+              _buildInput("Descrição", _descController, maxLines: 3),
+              const SizedBox(height: 24),
+              
               Row(
                 children: [
                   Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: _selectedPriority,
-                      dropdownColor: Theme.of(context).cardTheme.color,
-                      decoration: const InputDecoration(labelText: "Prioridade"),
-                      items: const [
-                        DropdownMenuItem(value: 'baixa', child: Text("Baixa")),
-                        DropdownMenuItem(value: 'media', child: Text("Média")),
-                        DropdownMenuItem(value: 'alta', child: Text("Alta")),
-                        DropdownMenuItem(value: 'urgente', child: Text("Urgente")),
-                      ],
-                      onChanged: (v) => setState(() => _selectedPriority = v!),
-                    ),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text("Prioridade", style: GoogleFonts.inter(color: Colors.grey, fontSize: 12)),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        value: _selectedPriority,
+                        dropdownColor: const Color(0xFF111827),
+                        decoration: _inputDeco(null),
+                        items: const [DropdownMenuItem(value: 'baixa', child: Text("Baixa")), DropdownMenuItem(value: 'media', child: Text("Média")), DropdownMenuItem(value: 'alta', child: Text("Alta")), DropdownMenuItem(value: 'urgente', child: Text("Urgente"))],
+                        onChanged: (v) => setState(() => _selectedPriority = v!),
+                      ),
+                    ]),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: DropdownButtonFormField<String>(
-                      // Garante valor válido
-                      value: categoryItems.any((i) => i.value == _selectedCategory) ? _selectedCategory : (categoryItems.isNotEmpty ? categoryItems.first.value : null),
-                      dropdownColor: Theme.of(context).cardTheme.color,
-                      decoration: const InputDecoration(labelText: "Categoria"),
-                      items: categoryItems,
-                      onChanged: (v) => setState(() => _selectedCategory = v!),
-                    ),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text("Categoria", style: GoogleFonts.inter(color: Colors.grey, fontSize: 12)),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        value: categories.any((c) => c.value == _selectedCategory) ? _selectedCategory : null,
+                        dropdownColor: const Color(0xFF111827),
+                        decoration: _inputDeco(null),
+                        items: categories,
+                        onChanged: (v) => setState(() => _selectedCategory = v!),
+                      ),
+                    ]),
                   ),
                 ],
               ),
+              
               const SizedBox(height: 16),
               InkWell(
                 onTap: () async {
-                  final date = await showDatePicker(
-                    context: context, initialDate: _selectedDate, firstDate: DateTime(2020), lastDate: DateTime(2030),
-                    builder: (context, child) => Theme(data: Theme.of(context), child: child!)
-                  );
-                  if(date != null) setState(() => _selectedDate = date);
+                  final d = await showDatePicker(context: context, initialDate: _selectedDate, firstDate: DateTime(2020), lastDate: DateTime(2030), builder: (context, child) => Theme(data: Theme.of(context).copyWith(colorScheme: const ColorScheme.dark(primary: Color(0xFF2EA063))), child: child!));
+                  if(d != null) setState(() => _selectedDate = d);
                 },
-                child: InputDecorator(
-                  decoration: const InputDecoration(labelText: "Data de Entrega", prefixIcon: Icon(Icons.calendar_today)),
-                  child: Text(DateFormat('dd/MM/yyyy').format(_selectedDate), style: const TextStyle(color: Colors.white)),
-                ),
+                child: InputDecorator(decoration: _inputDeco("Data de Entrega", icon: Icons.calendar_today), child: Text(DateFormat('dd/MM/yyyy').format(_selectedDate), style: const TextStyle(color: Colors.white))),
               ),
-              const SizedBox(height: 24),
-              // --- SEÇÃO CHECKLIST ---
-              Text("Checklist Inicial", style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(child: TextField(controller: _newSubtaskController, decoration: const InputDecoration(hintText: "Adicionar etapa...", isDense: true), onSubmitted: (_) => _addSubtaskItem())),
-                  const SizedBox(width: 8),
-                  IconButton.filled(onPressed: _addSubtaskItem, icon: const Icon(Icons.add), style: IconButton.styleFrom(backgroundColor: const Color(0xFF2EA063)))
-                ],
-              ),
-              const SizedBox(height: 8),
-              if (_tempSubtasks.isNotEmpty)
-                Container(
-                  decoration: BoxDecoration(border: Border.all(color: Colors.grey.withOpacity(0.2)), borderRadius: BorderRadius.circular(8)),
-                  child: Column(children: _tempSubtasks.asMap().entries.map((entry) => ListTile(dense: true, leading: const Icon(Icons.check_box_outline_blank, size: 18, color: Colors.grey), title: Text(entry.value, style: GoogleFonts.inter(fontSize: 13)), trailing: IconButton(icon: const Icon(Icons.close, size: 16, color: Colors.redAccent), onPressed: () => _removeSubtaskItem(entry.key)))).toList()),
-                ),
+              
               const SizedBox(height: 32),
+              Text("Checklist", style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey[400])),
+              const SizedBox(height: 8),
+              Row(children: [
+                Expanded(child: _buildInput("Adicionar etapa...", _newSubtaskController, onSubmitted: (_) => _addSubtaskItem())),
+                const SizedBox(width: 8),
+                Container(decoration: const BoxDecoration(color: Color(0xFF2EA063), shape: BoxShape.circle), child: IconButton(onPressed: _addSubtaskItem, icon: const Icon(Icons.add, color: Colors.white)))
+              ]),
+              if (_tempSubtasks.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Container(
+                  decoration: BoxDecoration(color: const Color(0xFF111827), borderRadius: BorderRadius.circular(8)),
+                  child: Column(children: _tempSubtasks.asMap().entries.map((e) => ListTile(dense: true, title: Text(e.value, style: const TextStyle(color: Colors.white70)), trailing: IconButton(icon: const Icon(Icons.close, size: 16, color: Colors.red), onPressed: () => setState(() => _tempSubtasks.removeAt(e.key))))).toList()),
+                )
+              ],
+
+              const SizedBox(height: 40),
               Align(
                 alignment: Alignment.centerRight,
                 child: FilledButton.icon(
+                  style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2EA063), padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16)),
                   onPressed: () {
                     if (_titleController.text.isEmpty) return;
                     Navigator.pop(context, {
                       'title': _titleController.text, 'desc': _descController.text, 'client': _clientController.text, 'assignee': _assigneeController.text,
-                      'priority': _selectedPriority, 'category': _selectedCategory, 'date': _selectedDate, 
-                      'subtasks': _tempSubtasks, // Envia lista de strings
+                      'priority': _selectedPriority, 'category': _selectedCategory, 'date': _selectedDate, 'subtasks': _tempSubtasks
                     });
                   },
-                  icon: Icon(isEditing ? Icons.save : Icons.check, size: 18),
-                  label: Text(isEditing ? "Salvar" : "Criar"),
+                  icon: const Icon(Icons.check), label: const Text("Confirmar")
                 ),
               )
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildInput(String label, TextEditingController c, {bool enabled = true, IconData? icon, int maxLines = 1, Function(String)? onSubmitted, bool autoFocus = false}) {
+    return TextField(
+      controller: c, enabled: enabled, maxLines: maxLines, onSubmitted: onSubmitted, autofocus: autoFocus,
+      style: GoogleFonts.inter(color: Colors.white),
+      decoration: _inputDeco(label, icon: icon)
+    );
+  }
+
+  InputDecoration _inputDeco(String? label, {IconData? icon}) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: icon != null ? Icon(icon, color: Colors.grey[600], size: 20) : null,
+      filled: true,
+      fillColor: const Color(0xFF111827),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+      labelStyle: TextStyle(color: Colors.grey[500]),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16)
     );
   }
 }
