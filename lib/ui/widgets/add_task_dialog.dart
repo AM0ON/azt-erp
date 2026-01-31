@@ -37,6 +37,8 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
       _selectedPriority = t.priority.name;
       _selectedCategory = t.category;
       _selectedDate = t.dueDate;
+      // Carrega subtasks existentes (apenas títulos para edição simplificada)
+      _tempSubtasks.addAll(t.subtasks.map((s) => s.title));
     } else {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if(mounted) {
@@ -56,8 +58,14 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<TaskController>();
-    final isManager = controller.isManager;
-    final categories = controller.categories.where((c) => c.label != 'Todas').map((c) => DropdownMenuItem(value: c.label, child: Text(c.label))).toList();
+    final isManager = controller.isManager; // Verifica se é gestor
+    final isEditing = widget.taskToEdit != null;
+    
+    // Categorias disponíveis
+    final categoryItems = controller.categories
+        .where((c) => c.label != 'Todas')
+        .map((c) => DropdownMenuItem(value: c.label, child: Text(c.label)))
+        .toList();
 
     return Dialog(
       backgroundColor: const Color(0xFF1F2937),
@@ -70,25 +78,54 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Header
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(widget.taskToEdit != null ? "Editar Tarefa" : "Nova Tarefa", style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                  Text(isEditing ? "Editar Tarefa" : "Nova Tarefa", style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
                   IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, color: Colors.grey))
                 ],
               ),
               const SizedBox(height: 24),
+              
+              // Título e Cliente
               _buildInput("Título", _titleController, autoFocus: true),
               const SizedBox(height: 16),
+              
+              // Linha: Cliente e Responsável
               Row(children: [
                 Expanded(child: _buildInput("Cliente", _clientController, icon: Icons.business)),
                 const SizedBox(width: 16),
-                Expanded(child: _buildInput("Responsável", _assigneeController, icon: Icons.person, enabled: isManager)),
+                
+                // LÓGICA DE ATRIBUIÇÃO
+                Expanded(
+                  child: Stack(
+                    alignment: Alignment.centerRight,
+                    children: [
+                      _buildInput(
+                        "Responsável", 
+                        _assigneeController, 
+                        icon: Icons.person, 
+                        enabled: isManager // Só gestor digita livremente
+                      ),
+                      if (!isManager) // Se não é gestor, mostra botão para pegar a tarefa
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: TextButton(
+                            onPressed: () => setState(() => _assigneeController.text = controller.currentUserName),
+                            child: Text("Pegar", style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF2EA063))),
+                          ),
+                        )
+                    ],
+                  ),
+                ),
               ]),
+              
               const SizedBox(height: 16),
               _buildInput("Descrição", _descController, maxLines: 3),
               const SizedBox(height: 24),
               
+              // Prioridade e Categoria (Gestor pode alterar livremente)
               Row(
                 children: [
                   Expanded(
@@ -110,10 +147,10 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                       Text("Categoria", style: GoogleFonts.inter(color: Colors.grey, fontSize: 12)),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
-                        value: categories.any((c) => c.value == _selectedCategory) ? _selectedCategory : null,
+                        value: categoryItems.any((c) => c.value == _selectedCategory) ? _selectedCategory : null,
                         dropdownColor: const Color(0xFF111827),
                         decoration: _inputDeco(null),
-                        items: categories,
+                        items: categoryItems,
                         onChanged: (v) => setState(() => _selectedCategory = v!),
                       ),
                     ]),
@@ -122,6 +159,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
               ),
               
               const SizedBox(height: 16),
+              // Data
               InkWell(
                 onTap: () async {
                   final d = await showDatePicker(context: context, initialDate: _selectedDate, firstDate: DateTime(2020), lastDate: DateTime(2030), builder: (context, child) => Theme(data: Theme.of(context).copyWith(colorScheme: const ColorScheme.dark(primary: Color(0xFF2EA063))), child: child!));
@@ -131,6 +169,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
               ),
               
               const SizedBox(height: 32),
+              // Checklist
               Text("Checklist", style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey[400])),
               const SizedBox(height: 8),
               Row(children: [
@@ -147,6 +186,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
               ],
 
               const SizedBox(height: 40),
+              // Ações Finais
               Align(
                 alignment: Alignment.centerRight,
                 child: FilledButton.icon(
@@ -158,7 +198,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
                       'priority': _selectedPriority, 'category': _selectedCategory, 'date': _selectedDate, 'subtasks': _tempSubtasks
                     });
                   },
-                  icon: const Icon(Icons.check), label: const Text("Confirmar")
+                  icon: const Icon(Icons.check), label: const Text("Salvar")
                 ),
               )
             ],
@@ -171,7 +211,7 @@ class _AddTaskDialogState extends State<AddTaskDialog> {
   Widget _buildInput(String label, TextEditingController c, {bool enabled = true, IconData? icon, int maxLines = 1, Function(String)? onSubmitted, bool autoFocus = false}) {
     return TextField(
       controller: c, enabled: enabled, maxLines: maxLines, onSubmitted: onSubmitted, autofocus: autoFocus,
-      style: GoogleFonts.inter(color: Colors.white),
+      style: GoogleFonts.inter(color: enabled ? Colors.white : Colors.grey),
       decoration: _inputDeco(label, icon: icon)
     );
   }
