@@ -124,7 +124,7 @@ class TasksPage extends StatelessWidget {
                   )
                 ),
                 
-                // Botão "Adicionar Quadro" (Corrigido: BorderStyle.solid)
+                // Botão "Adicionar Quadro"
                 if (isManager)
                   Padding(
                     padding: const EdgeInsets.only(top: 0),
@@ -137,7 +137,6 @@ class TasksPage extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.02),
                           borderRadius: BorderRadius.circular(16),
-                          // [CORREÇÃO] Removido style: BorderStyle.dashed
                           border: Border.all(color: Colors.white10, width: 1.5), 
                         ),
                         child: Center(
@@ -173,7 +172,6 @@ class TasksPage extends StatelessWidget {
 
   Widget _buildKanbanColumn(BuildContext context, String title, List<TaskModel> allTasks, TaskController controller, bool isManager) {
     final tasks = allTasks.where((t) => t.status == title).toList();
-    // Dummy para pegar a cor consistente
     final dummy = TaskModel(id: '', title: '', description: '', dueDate: DateTime.now(), category: '', priority: TaskPriority.baixa, status: title);
     final color = dummy.statusColor;
 
@@ -278,9 +276,86 @@ class TasksPage extends StatelessWidget {
     showDialog(context: context, builder: (ctx) => _ModernDialog(title: "Novo Quadro", child: TextField(controller: c, decoration: _inputDeco("Nome da Coluna")), onConfirm: (){ if(c.text.isNotEmpty) { context.read<TaskController>().addStatus(c.text); Navigator.pop(ctx); }}));
   }
 
+  // [ALTERAÇÃO]: Seletor de Ícones no Dialog de Categoria
   Future<void> _showAddCategoryDialog(BuildContext context) async {
-    final c = TextEditingController();
-    showDialog(context: context, builder: (ctx) => _ModernDialog(title: "Nova Categoria", child: TextField(controller: c, decoration: _inputDeco("Nome da Categoria")), onConfirm: (){ if(c.text.isNotEmpty) { context.read<TaskController>().addCategory(c.text, Icons.label_outline); Navigator.pop(ctx); }}));
+    final textController = TextEditingController();
+    
+    // Lista de ícones disponíveis
+    final List<IconData> availableIcons = [
+      Icons.label_outline,
+      Icons.code,
+      Icons.design_services,
+      Icons.attach_money,
+      Icons.campaign, // Marketing
+      Icons.people, // RH
+      Icons.shopping_cart, // Vendas
+      Icons.bug_report, // QA
+      Icons.security,
+      Icons.cloud,
+      Icons.folder,
+      Icons.lightbulb,
+    ];
+    
+    IconData selectedIcon = availableIcons[0]; // Ícone padrão
+
+    await showDialog(
+      context: context, 
+      builder: (ctx) => StatefulBuilder( // StatefulBuilder para atualizar o ícone selecionado
+        builder: (context, setState) {
+          return _ModernDialog(
+            title: "Nova Categoria", 
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: textController, 
+                  style: GoogleFonts.inter(color: Colors.white),
+                  decoration: _inputDeco("Nome da Categoria", icon: selectedIcon) // Mostra ícone no input
+                ),
+                const SizedBox(height: 16),
+                Text("Selecione um ícone:", style: GoogleFonts.inter(color: Colors.grey[400], fontSize: 12, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF111827),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white10)
+                  ),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: availableIcons.map((icon) {
+                      final isSelected = icon == selectedIcon;
+                      return InkWell(
+                        onTap: () => setState(() => selectedIcon = icon),
+                        borderRadius: BorderRadius.circular(8),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: isSelected ? const Color(0xFF2EA063).withOpacity(0.2) : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: isSelected ? const Color(0xFF2EA063) : Colors.transparent)
+                          ),
+                          child: Icon(icon, size: 20, color: isSelected ? const Color(0xFF2EA063) : Colors.grey),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                )
+              ],
+            ), 
+            onConfirm: () { 
+              if(textController.text.isNotEmpty) { 
+                context.read<TaskController>().addCategory(textController.text, selectedIcon); 
+                Navigator.pop(ctx); 
+              }
+            }
+          );
+        }
+      )
+    );
   }
 
   Future<void> _showAddTaskDialog(BuildContext context) async {
@@ -297,7 +372,14 @@ class TasksPage extends StatelessWidget {
 }
 
 // Helpers de Estilo
-InputDecoration _inputDeco(String label) => InputDecoration(labelText: label, filled: true, fillColor: const Color(0xFF111827), border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none), labelStyle: TextStyle(color: Colors.grey[500]));
+InputDecoration _inputDeco(String label, {IconData? icon}) => InputDecoration(
+  labelText: label, 
+  prefixIcon: icon != null ? Icon(icon, color: Colors.grey[500], size: 18) : null,
+  filled: true, 
+  fillColor: const Color(0xFF111827), 
+  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none), 
+  labelStyle: TextStyle(color: Colors.grey[500])
+);
 
 class _ModernDialog extends StatelessWidget {
   final String title; final Widget child; final VoidCallback onConfirm;
