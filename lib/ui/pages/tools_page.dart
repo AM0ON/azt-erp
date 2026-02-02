@@ -1,30 +1,125 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
-import '../../core/app_colors.dart';
-import '../../controllers/task_controller.dart';
+import 'package:uuid/uuid.dart';
+import '../../models/task_model.dart';
+import '../../services/storage_service.dart';
+import '../../core/utils/input_sanitizer.dart';
 
-class ExternalTool { final String name, url, category; final IconData icon; final Color color; final List<String> allowedRoles; ExternalTool({required this.name, required this.url, required this.icon, required this.color, required this.category, required this.allowedRoles}); }
+class CategoryItem {
+  final String label;
+  final IconData icon;
+  CategoryItem(this.label, this.icon);
+}
 
-class ToolsPage extends StatelessWidget {
-  const ToolsPage({super.key});
-  static List<ExternalTool> get _allTools => [
-    ExternalTool(name: 'Slack', url: 'https://slack.com', icon: Icons.chat, color: Colors.purple, category: 'Geral', allowedRoles: []),
-    ExternalTool(name: 'AWS', url: 'https://aws.amazon.com', icon: Icons.cloud, color: Colors.orange, category: 'DevOps', allowedRoles: ['_CTO', '_DEV']),
-    ExternalTool(name: 'Banco', url: 'https://banco.com', icon: Icons.account_balance, color: Colors.green, category: 'Financeiro', allowedRoles: ['_CTO', '_FIN']),
+class TaskController extends ChangeNotifier {
+  final Uuid _uuid = const Uuid();
+  bool isManager = true;
+
+  List<CategoryItem> _categories = [
+    CategoryItem("Projetos", Icons.rocket_launch),
+    CategoryItem("Gestão", Icons.work),
+    CategoryItem("Pessoal", Icons.person),
+    CategoryItem("Infra", Icons.computer),
   ];
 
-  @override
-  Widget build(BuildContext context) {
-    final role = context.watch<TaskController>().userRole;
-    final tools = _allTools.where((t) => t.allowedRoles.isEmpty || t.allowedRoles.contains(role)).toList();
-    
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, title: const Text("Ferramentas")),
-      body: GridView.builder(padding: const EdgeInsets.all(24), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 16, mainAxisSpacing: 16, childAspectRatio: 1.5), itemCount: tools.length, itemBuilder: (c, i) => _Card(tool: tools[i])),
+  List<TaskModel> _tasks = [];
+  String _currentFilter = 'Todos';
+
+  TaskController() {
+    _loadData();
+  }
+
+  List<TaskModel> get tasks => _currentFilter == 'Todos'
+      ? List.unmodifiable(_tasks)
+      : _tasks.where((t) => t.category == _currentFilter).toList();
+
+  List<CategoryItem> get categories => List.unmodifiable(_categories);
+  String get currentFilter => _currentFilter;
+  int get activeTasksCount => _tasks.where((t) => t.status != TaskStatus.done).length;
+
+  void _loadData() {
+    final rawTasks = StorageService.getAllTasks();
+    if (rawTasks.isNotEmpty) {
+      _tasks = rawTasks.map((map) => TaskModel.fromMap(map)).toList();
+      _tasks.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    } else {
+      _tasks = [];
+    }
+
+    final savedCatLabels = StorageService.getCategories();
+    for (var label in savedCatLabels) {
+      if (!_categories.any((c) => c.label == label)) {
+        _categories.add(CategoryItem(label, Icons.label_outline));
+      }
+    }
+    notifyListeners();
+  }
+
+  void setFilter(String category) {
+    _currentFilter = category;
+    notifyListeners();
+  }
+
+  void addTask({
+    required String title,
+    required String description,
+    required TaskPriority priority,
+    required String category,
+    DateTime? deadline
+  }) {
+    final cleanTitle = InputSanitizer.clean(title);
+    final cleanDesc = InputSanitizer.clean(description);
+
+    final newTask = TaskModel(
+      id: _uuid.v7(),
+      title: cleanTitle.isEmpty ? "Sem Título" : cleanTitle,
+      description: cleanDesc,
+      createdAt: DateTime.now(),
+      deadline: deadline,
+      priority: priority,
+      category: category,
+      status: TaskStatus.todo,
     );
+
+    _tasks.insert(0, newTask);
+    notifyListeners();
+    StorageService.saveTask(newTask.toMap());
+  }
+
+  void updateTaskStatus(String id, TaskStatus newStatus) {
+    final index = _tasks.indexWhere((t) => t.id == id);
+    if (index != -1) {
+      final task = _tasks[index];
+      task.status = newStatus;
+      notifyListeners();
+      StorageService.saveTask(task.toMap());
+    }
+  }
+
+  void deleteTask(String id) {
+    _tasks.removeWhere((t) => t.id == id);
+    notifyListeners();
+    StorageService.deleteTask(id);
+  }
+
+  void addCategory(String label, IconData icon) {
+    final cleanLabel = InputSanitizer.clean(label);
+    if (cleanLabel.isNotEmpty && !_categories.any((c) => c.label == cleanLabel)) {
+      _categories.add(CategoryItem(cleanLabel, icon));
+      notifyListeners();
+
+      final defaultLabels = ["Projetos", "Gestão", "Pessoal", "Infra"];
+      final customCategories = _categories
+          .where((c) => !defaultLabels.contains(c.label))
+          .map((c) => c.label)
+          .toList();
+
+      StorageService.saveCategories(customCategories);
+    }
+  }
+
+  void clearAll() {
+    _tasks.clear();
+    notifyListeners();
+    StorageService.clearAll();
   }
 }
-class _Card extends StatelessWidget { final ExternalTool tool; const _Card({required this.tool}); @override Widget build(BuildContext context) => InkWell(onTap: () => launchUrl(Uri.parse(tool.url)), child: Container(decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16)), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(tool.icon, color: tool.color, size: 32), const SizedBox(height: 8), Text(tool.name, style: const TextStyle(color: Colors.white))]))); }

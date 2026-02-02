@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../models/task_model.dart';
+import '../services/storage_service.dart';
 import '../core/utils/input_sanitizer.dart';
 
 class CategoryItem {
@@ -11,233 +12,162 @@ class CategoryItem {
 
 class TaskController extends ChangeNotifier {
   final Uuid _uuid = const Uuid();
+  bool isManager = true;
 
-  final List<TaskModel> _tasks = [];
-  List<TaskModel>? _cachedFilteredTasks;
-
-  String _currentFilter = 'Todos';
-  final String _userRole = '_CTO';
-
-  final List<String> _statuses = ['A Fazer', 'Em Progresso', 'Revisão', 'Concluído'];
-
-  final List<CategoryItem> _categories = [
-    CategoryItem('Todos', Icons.dashboard),
-    CategoryItem('Projetos', Icons.rocket_launch),
-    CategoryItem('Gestão', Icons.business_center),
-    CategoryItem('Pessoal', Icons.person),
-    CategoryItem('Infra', Icons.computer),
+  List<CategoryItem> _categories = [
+    CategoryItem("Projetos", Icons.rocket_launch),
+    CategoryItem("Gestão", Icons.work),
+    CategoryItem("Pessoal", Icons.person),
+    CategoryItem("Infra", Icons.computer),
   ];
 
+  List<TaskModel> _tasks = [];
+  String _currentFilter = 'Todos';
+
   TaskController() {
-    _seedInitialData();
+    _loadData();
   }
 
-  // --- GETTERS ---
+  List<TaskModel> get tasks => _currentFilter == 'Todos'
+      ? List.unmodifiable(_tasks)
+      : _tasks.where((t) => t.category == _currentFilter).toList();
 
-  List<String> get statuses => _statuses;
-  List<CategoryItem> get categories => _categories;
+  List<CategoryItem> get categories => List.unmodifiable(_categories);
   String get currentFilter => _currentFilter;
-  String get userRole => _userRole;
-  
-  bool get isManager => _userRole == '_CTO';
-  bool get canCreateOrDelete => _userRole == '_CTO';
+  int get activeTasksCount => _tasks.where((t) => t.status != TaskStatus.done).length;
 
-  int get unreadCount {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    return _tasks.where((t) {
-      final taskDate = DateTime(t.dueDate.year, t.dueDate.month, t.dueDate.day);
-      return !t.isCompleted && taskDate.isBefore(today);
-    }).length;
-  }
-
-  int get activeTasksCount => _tasks.where((t) => t.status != 'Concluído').length;
-
-  List<TaskModel> get filteredTasks {
-    if (_cachedFilteredTasks != null) {
-      return _cachedFilteredTasks!;
-    }
-
-    if (_currentFilter == 'Todos') {
-      _cachedFilteredTasks = List.from(_tasks);
+  void _loadData() {
+    final rawTasks = StorageService.getAllTasks();
+    if (rawTasks.isNotEmpty) {
+      _tasks = rawTasks.map((map) => TaskModel.fromMap(map)).toList();
+      _tasks.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     } else {
-      _cachedFilteredTasks = _tasks.where((t) => t.category == _currentFilter).toList();
+      _tasks = [];
     }
-    
-    return _cachedFilteredTasks!;
-  }
 
-  // --- MÉTODOS DE AÇÃO ---
-
-  void _invalidateCache() {
-    _cachedFilteredTasks = null;
+    final savedCatLabels = StorageService.getCategories();
+    for (var label in savedCatLabels) {
+      if (!_categories.any((c) => c.label == label)) {
+        _categories.add(CategoryItem(label, Icons.label_outline));
+      }
+    }
     notifyListeners();
   }
 
-  void setFilter(String filter) {
-    if (_currentFilter != filter) {
-      _currentFilter = filter;
-      _invalidateCache();
-    }
+  void setFilter(String category) {
+    _currentFilter = category;
+    notifyListeners();
   }
 
-  void addTask(TaskModel task) {
-    final sanitizedTitle = InputSanitizer.clean(task.title);
-    final sanitizedDesc = InputSanitizer.clean(task.description);
-    final sanitizedClient = task.client != null ? InputSanitizer.clean(task.client!) : null;
+  void addTask({
+    required String title,
+    required String description,
+    required TaskPriority priority,
+    required String category,
+    DateTime? deadline
+  }) {
+    final cleanTitle = InputSanitizer.clean(title);
+    final cleanDesc = InputSanitizer.clean(description);
 
     final newTask = TaskModel(
       id: _uuid.v7(),
-      title: sanitizedTitle,
-      description: sanitizedDesc,
-      dueDate: task.dueDate,
-      priority: task.priority,
-      category: task.category,
-      status: task.status,
-      subtasks: task.subtasks, 
-      client: sanitizedClient,
-      assignee: task.assignee,
-      comments: task.comments,
+      title: cleanTitle.isEmpty ? "Sem Título" : cleanTitle,
+      description: cleanDesc,
+      createdAt: DateTime.now(),
+      deadline: deadline,
+      priority: priority,
+      category: category,
+      status: TaskStatus.todo,
+      subtasks: [], // Inicia vazio
     );
 
-    _tasks.add(newTask);
-    _invalidateCache();
+    _tasks.insert(0, newTask);
+    notifyListeners();
+    StorageService.saveTask(newTask.toMap());
   }
 
-  void updateTaskStatus(String id, String newStatus) {
+  void updateTaskStatus(String id, TaskStatus newStatus) {
     final index = _tasks.indexWhere((t) => t.id == id);
     if (index != -1) {
-      final old = _tasks[index];
-      _tasks[index] = TaskModel(
-        id: old.id,
-        title: old.title,
-        description: old.description,
-        dueDate: old.dueDate,
-        priority: old.priority,
-        category: old.category,
-        subtasks: old.subtasks,
-        client: old.client,
-        assignee: old.assignee,
-        comments: old.comments,
-        status: newStatus,
-      );
-      _invalidateCache();
-    }
-  }
-
-  void toggleTaskCompletion(String id) {
-    final index = _tasks.indexWhere((t) => t.id == id);
-    if (index != -1) {
-      final t = _tasks[index];
-      final newStatus = t.status == 'Concluído' ? 'A Fazer' : 'Concluído';
-      updateTaskStatus(id, newStatus);
+      final task = _tasks[index];
+      task.status = newStatus;
+      notifyListeners();
+      StorageService.saveTask(task.toMap());
     }
   }
 
   void deleteTask(String id) {
     _tasks.removeWhere((t) => t.id == id);
-    _invalidateCache();
+    notifyListeners();
+    StorageService.deleteTask(id);
   }
 
-  void addStatus(String status) {
-    final cleanStatus = InputSanitizer.clean(status);
-    if (!_statuses.contains(cleanStatus) && cleanStatus.isNotEmpty) {
-      _statuses.add(cleanStatus);
-      notifyListeners();
+  // --- MÉTODOS DE SUBTAREFAS (O ERRO ESTAVA AQUI) ---
+
+  // 1. Alternar Checkbox (Concluir/Reabrir Subtarefa)
+  void toggleSubTask(String taskId, String subTaskId) {
+    final taskIndex = _tasks.indexWhere((t) => t.id == taskId);
+    if (taskIndex != -1) {
+      final task = _tasks[taskIndex];
+      // Encontra a subtarefa
+      try {
+        final subTask = task.subtasks.firstWhere((s) => s.id == subTaskId);
+        subTask.isCompleted = !subTask.isCompleted;
+        
+        notifyListeners();
+        StorageService.saveTask(task.toMap()); // Salva o estado atualizado
+      } catch (e) {
+        debugPrint("Subtarefa não encontrada: $e");
+      }
     }
   }
+
+  // 2. Adicionar Subtarefa
+  void addSubTask(String taskId, String title) {
+    final taskIndex = _tasks.indexWhere((t) => t.id == taskId);
+    if (taskIndex != -1 && title.isNotEmpty) {
+      final task = _tasks[taskIndex];
+      final newSub = SubTask(id: _uuid.v7(), title: title);
+      
+      task.subtasks.add(newSub);
+      notifyListeners();
+      StorageService.saveTask(task.toMap());
+    }
+  }
+
+  // 3. Remover Subtarefa
+  void removeSubTask(String taskId, String subTaskId) {
+    final taskIndex = _tasks.indexWhere((t) => t.id == taskId);
+    if (taskIndex != -1) {
+      final task = _tasks[taskIndex];
+      task.subtasks.removeWhere((s) => s.id == subTaskId);
+      
+      notifyListeners();
+      StorageService.saveTask(task.toMap());
+    }
+  }
+
+  // --- FIM DOS MÉTODOS DE SUBTAREFAS ---
 
   void addCategory(String label, IconData icon) {
     final cleanLabel = InputSanitizer.clean(label);
     if (cleanLabel.isNotEmpty && !_categories.any((c) => c.label == cleanLabel)) {
       _categories.add(CategoryItem(cleanLabel, icon));
       notifyListeners();
+
+      final defaultLabels = ["Projetos", "Gestão", "Pessoal", "Infra"];
+      final customCategories = _categories
+          .where((c) => !defaultLabels.contains(c.label))
+          .map((c) => c.label)
+          .toList();
+
+      StorageService.saveCategories(customCategories);
     }
   }
 
-  void addSubTask(String taskId, String title) {
-    final cleanTitle = InputSanitizer.clean(title);
-    if (cleanTitle.isEmpty) return;
-
-    final index = _tasks.indexWhere((t) => t.id == taskId);
-    if (index != -1) {
-      final newSub = SubTask(
-        id: _uuid.v7(), 
-        title: cleanTitle
-      );
-      _tasks[index].subtasks.add(newSub);
-      notifyListeners(); 
-    }
-  }
-
-  void removeSubTask(String taskId, String subTaskId) {
-    final index = _tasks.indexWhere((t) => t.id == taskId);
-    if (index != -1) {
-      _tasks[index].subtasks.removeWhere((s) => s.id == subTaskId);
-      notifyListeners(); 
-    }
-  }
-  
-  void toggleSubTask(String taskId, String subTaskId) {
-    final tIndex = _tasks.indexWhere((t) => t.id == taskId);
-    if (tIndex != -1) {
-      final sIndex = _tasks[tIndex].subtasks.indexWhere((s) => s.id == subTaskId);
-      if (sIndex != -1) {
-        final old = _tasks[tIndex].subtasks[sIndex];
-        _tasks[tIndex].subtasks[sIndex] = SubTask(
-          id: old.id, 
-          title: old.title, 
-          isCompleted: !old.isCompleted
-        );
-        notifyListeners(); 
-      }
-    }
-  }
-
-  void addComment(String taskId, String content) {
-    final cleanContent = InputSanitizer.clean(content);
-    if (cleanContent.isEmpty) return;
-
-    final index = _tasks.indexWhere((t) => t.id == taskId);
-    if (index != -1) {
-      final newComment = Comment(
-        author: "CTO", 
-        content: cleanContent,
-        date: DateTime.now()
-      );
-      _tasks[index].comments.add(newComment);
-      notifyListeners();
-    }
-  }
-
-  // --- PERMISSÕES (As que faltavam) ---
-  
-  bool canEdit(TaskModel task) => isManager;
-
-  bool canComplete(TaskModel task) => true;
-
-  // --- SEED INICIAL ---
-
-  void _seedInitialData() {
-    _tasks.addAll([
-      TaskModel(
-        id: _uuid.v7(),
-        title: 'Finalizar Protótipo do App',
-        description: 'Terminar as telas de login e home no Figma.',
-        dueDate: DateTime.now().add(const Duration(days: 2)),
-        priority: TaskPriority.alta,
-        status: 'A Fazer',
-        category: 'Projetos',
-      ),
-      TaskModel(
-        id: _uuid.v7(),
-        title: 'Reunião com Investidores',
-        description: 'Apresentar métricas do Q1.',
-        dueDate: DateTime.now().subtract(const Duration(days: 1)),
-        priority: TaskPriority.urgente,
-        status: 'A Fazer',
-        category: 'Gestão',
-      ),
-    ]);
+  void clearAll() {
+    _tasks.clear();
+    notifyListeners();
+    StorageService.clearAll();
   }
 }

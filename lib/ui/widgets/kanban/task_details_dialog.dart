@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+
 import '../../../models/task_model.dart';
 import '../../../controllers/task_controller.dart';
 import '../../../core/app_colors.dart';
@@ -15,29 +16,32 @@ class TaskDetailsDialog extends StatefulWidget {
 }
 
 class _TaskDetailsDialogState extends State<TaskDetailsDialog> {
-  final TextEditingController _commentController = TextEditingController();
   final TextEditingController _subTaskController = TextEditingController();
 
   @override
   void dispose() {
-    _commentController.dispose();
     _subTaskController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // Escuta o controller para atualizar a tela quando houver mudanças (ex: check na subtarefa)
     final controller = context.watch<TaskController>();
     
+    // Tenta encontrar a tarefa atualizada na lista. Se não achar (foi deletada?), usa a do widget.
     TaskModel task;
     try {
-      task = controller.filteredTasks.firstWhere((t) => t.id == widget.task.id);
+      task = controller.tasks.firstWhere((t) => t.id == widget.task.id);
     } catch (e) {
       task = widget.task;
     }
 
-    final dateStr = DateFormat('dd/MM/yyyy').format(task.dueDate);
+    final dateStr = task.deadline != null 
+        ? DateFormat('dd/MM/yyyy').format(task.deadline!) 
+        : 'Sem Prazo';
 
+    // Busca o ícone da categoria
     final categoryItem = controller.categories.firstWhere(
       (c) => c.label == task.category,
       orElse: () => controller.categories.first
@@ -53,31 +57,35 @@ class _TaskDetailsDialogState extends State<TaskDetailsDialog> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // --- COLUNA ESQUERDA (Detalhes e Subtarefas) ---
             Expanded(
               flex: 3,
               child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // HEADER: Prioridade, Categoria, Status
                     Row(
                       children: [
+                        // Badge Prioridade
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: task.priority.color.withOpacity(0.2), 
+                            color: task.priorityColor.withOpacity(0.2), 
                             borderRadius: BorderRadius.circular(4)
                           ),
                           child: Text(
-                            task.priority.name.toUpperCase(), 
+                            task.priorityLabel.toUpperCase(), 
                             style: GoogleFonts.inter(
                               fontSize: 10, 
                               fontWeight: FontWeight.bold, 
-                              color: task.priority.color
+                              color: task.priorityColor
                             )
                           ),
                         ),
                         const SizedBox(width: 8),
                         
+                        // Badge Categoria
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
@@ -99,6 +107,7 @@ class _TaskDetailsDialogState extends State<TaskDetailsDialog> {
                         
                         const Spacer(),
                         
+                        // Dropdown Status
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           decoration: BoxDecoration(
@@ -106,12 +115,21 @@ class _TaskDetailsDialogState extends State<TaskDetailsDialog> {
                             borderRadius: BorderRadius.circular(8)
                           ),
                           child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: controller.statuses.contains(task.status) ? task.status : controller.statuses.first,
+                            child: DropdownButton<TaskStatus>(
+                              value: task.status,
                               icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
                               style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
                               dropdownColor: AppColors.surface,
-                              items: controller.statuses.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                              items: TaskStatus.values.map((s) {
+                                // Formata o texto do Enum (ex: TaskStatus.todo -> A Fazer)
+                                String label;
+                                switch(s) {
+                                  case TaskStatus.todo: label = "A Fazer"; break;
+                                  case TaskStatus.inProgress: label = "Em Progresso"; break;
+                                  case TaskStatus.done: label = "Concluído"; break;
+                                }
+                                return DropdownMenuItem(value: s, child: Text(label));
+                              }).toList(),
                               onChanged: (val) { 
                                 if (val != null) controller.updateTaskStatus(task.id, val); 
                               },
@@ -123,17 +141,27 @@ class _TaskDetailsDialogState extends State<TaskDetailsDialog> {
                     
                     const SizedBox(height: 24),
                     
+                    // TÍTULO E DESCRIÇÃO
                     Text(task.title, style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
                     const SizedBox(height: 16),
                     Text("Descrição", style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
                     const SizedBox(height: 8),
-                    Text(
-                      task.description.isEmpty ? "Sem descrição." : task.description, 
-                      style: GoogleFonts.inter(fontSize: 14, color: Colors.grey.shade300, height: 1.5)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.black12,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        task.description.isEmpty ? "Sem descrição detalhada." : task.description, 
+                        style: GoogleFonts.inter(fontSize: 14, color: Colors.grey.shade300, height: 1.5)
+                      ),
                     ),
                     
                     const SizedBox(height: 32),
                     
+                    // --- SUBTAREFAS (CHECKLIST) ---
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween, 
                       children: [
@@ -146,6 +174,7 @@ class _TaskDetailsDialogState extends State<TaskDetailsDialog> {
                     ),
                     const SizedBox(height: 12),
                     
+                    // Input Nova Subtarefa
                     Row(
                       children: [
                         Expanded(
@@ -182,6 +211,7 @@ class _TaskDetailsDialogState extends State<TaskDetailsDialog> {
                     ),
                     const SizedBox(height: 12),
                     
+                    // Lista de Subtarefas
                     ...task.subtasks.map((sub) => Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
@@ -215,8 +245,10 @@ class _TaskDetailsDialogState extends State<TaskDetailsDialog> {
               ),
             ),
             
+            // Divisor Vertical
             Container(width: 1, color: Colors.white10, margin: const EdgeInsets.symmetric(horizontal: 32)),
             
+            // --- COLUNA DIREITA (Meta Dados) ---
             Expanded(
               flex: 2,
               child: Column(
@@ -224,79 +256,27 @@ class _TaskDetailsDialogState extends State<TaskDetailsDialog> {
                 children: [
                   _buildInfoRow(Icons.calendar_today, "Entrega", dateStr),
                   const SizedBox(height: 16),
-                  _buildInfoRow(Icons.person, "Responsável", task.assignee ?? "Não atribuído"),
-                  const SizedBox(height: 16),
-                  if (task.client != null && task.client!.isNotEmpty) 
-                    _buildInfoRow(Icons.business, "Cliente", task.client!),
                   
-                  const Divider(height: 48, color: Colors.white10),
+                  _buildInfoRow(
+                    Icons.person, 
+                    "Responsável", 
+                    task.assignedTo.isEmpty ? "Não atribuído" : task.assignedTo.join(", ")
+                  ),
                   
-                  Text("Comentários", style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
-                  const SizedBox(height: 16),
+                  const Spacer(),
                   
-                  Expanded(
-                    child: task.comments.isEmpty 
-                    ? const Center(child: Text("Sem comentários.", style: TextStyle(color: Colors.grey)))
-                    : ListView.separated(
-                      itemCount: task.comments.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 16),
-                      itemBuilder: (context, index) {
-                        final comment = task.comments[index];
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start, 
-                          children: [
-                            Row(
-                              children: [
-                                Text(comment.author, style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white)), 
-                                const SizedBox(width: 8), 
-                                Text(DateFormat('dd/MM HH:mm').format(comment.date), style: GoogleFonts.inter(color: Colors.grey, fontSize: 10))
-                              ]
-                            ), 
-                            const SizedBox(height: 4), 
-                            Text(comment.content, style: GoogleFonts.inter(color: Colors.grey.shade300, fontSize: 13))
-                          ]
-                        );
-                      },
+                  // Botão de Fechar
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.white10),
+                        padding: const EdgeInsets.symmetric(vertical: 16)
+                      ),
+                      child: const Text("Fechar", style: TextStyle(color: Colors.white)),
                     ),
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _commentController, 
-                          style: const TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            hintText: "Comentar...", 
-                            hintStyle: const TextStyle(color: Colors.grey),
-                            isDense: true,
-                            filled: true,
-                            fillColor: Colors.black12,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none)
-                          ), 
-                          onSubmitted: (val) { 
-                            if(val.isNotEmpty) { 
-                              controller.addComment(task.id, val); 
-                              _commentController.clear(); 
-                            } 
-                          }
-                        )
-                      ), 
-                      const SizedBox(width: 8),
-                      IconButton.filled(
-                        style: IconButton.styleFrom(backgroundColor: AppColors.primary),
-                        onPressed: () { 
-                          if(_commentController.text.isNotEmpty) { 
-                            controller.addComment(task.id, _commentController.text); 
-                            _commentController.clear(); 
-                          } 
-                        }, 
-                        icon: const Icon(Icons.send, size: 18, color: Colors.white)
-                      )
-                    ]
-                  ),
+                  )
                 ],
               ),
             )
@@ -311,25 +291,16 @@ class _TaskDetailsDialogState extends State<TaskDetailsDialog> {
       children: [
         Icon(icon, size: 16, color: Colors.grey), 
         const SizedBox(width: 12), 
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start, 
-          children: [
-            Text(label, style: GoogleFonts.inter(fontSize: 11, color: Colors.grey)), 
-            Text(value, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white))
-          ]
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start, 
+            children: [
+              Text(label, style: GoogleFonts.inter(fontSize: 11, color: Colors.grey)), 
+              Text(value, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white), overflow: TextOverflow.ellipsis)
+            ]
+          ),
         )
       ]
     );
-  }
-}
-
-extension TaskPriorityColor on TaskPriority {
-  Color get color {
-    switch (this) {
-      case TaskPriority.urgente: return Colors.red;
-      case TaskPriority.alta: return Colors.orange;
-      case TaskPriority.media: return Colors.blue;
-      case TaskPriority.baixa: return Colors.green;
-    }
   }
 }
