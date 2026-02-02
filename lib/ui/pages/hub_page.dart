@@ -1,3 +1,4 @@
+import 'package:azt_tasks/pages/login_page.dart';
 import 'package:azt_tasks/pages/task_page.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,6 +8,7 @@ import '../../core/app_colors.dart';
 import '../../controllers/task_controller.dart';
 import 'task_page.dart';
 import 'finance_page.dart';
+import '../pages/hub_page.dart';
 
 class HubPage extends StatelessWidget {
   const HubPage({super.key});
@@ -125,7 +127,46 @@ class HubPage extends StatelessWidget {
                     Text("AzorTech ERP", style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
                   ],
                 ),
-                IconButton(onPressed: () {}, icon: const Icon(Icons.logout, color: Colors.grey))
+                
+                // --- BOTÃO DE LOGOUT BLINDADO ---
+                IconButton(
+                  icon: const Icon(Icons.logout, color: Colors.grey),
+                  tooltip: "Encerrar Sessão",
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        backgroundColor: AppColors.surface,
+                        title: const Text("Encerrar Sessão?", style: TextStyle(color: Colors.white)),
+                        content: const Text(
+                          "Você será desconectado e retornará à tela de login.",
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text("Cancelar", style: TextStyle(color: Colors.grey)),
+                          ),
+                          FilledButton(
+                            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+                            onPressed: () {
+                              Navigator.pop(context); // Fecha o Dialog
+                              
+                              // DESTRÓI TODA A PILHA DE NAVEGAÇÃO
+                              Navigator.pushAndRemoveUntil(
+                                context,
+                                MaterialPageRoute(builder: (context) => const LoginPage ()),
+                                (Route<dynamic> route) => false, // Impede voltar
+                              );
+                            },
+                            child: const Text("Sair"),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                )
+                // --------------------------------
               ],
             ),
             const Spacer(),

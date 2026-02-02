@@ -4,6 +4,7 @@ class TransactionModel {
   final double value;
   final DateTime date;
   final bool isIncome;
+  final String category; // [NOVO] Campo adicionado
 
   TransactionModel({
     required this.id,
@@ -11,5 +12,6 @@ class TransactionModel {
     required this.value,
     required this.date,
     required this.isIncome,
+    required this.category, // [NOVO] Obrigatório
   });
 }

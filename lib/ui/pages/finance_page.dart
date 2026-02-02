@@ -172,7 +172,7 @@ class FinancePage extends StatelessWidget {
                   overflow: TextOverflow.ellipsis, 
                 ),
                 Text(
-                  "${transaction.isIncome ? 'Entrada' : 'Saída'} • $dateStr", 
+                  "${transaction.category} • $dateStr", 
                   style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[500]),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
