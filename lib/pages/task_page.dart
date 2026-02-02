@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+// Imports da Estrutura
+import '../../core/app_colors.dart';
 import '../../controllers/task_controller.dart';
 import '../../models/task_model.dart';
-import '../ui/widgets/task_card.dart';
+import '../ui/widgets/kanban/filter_bar.dart';
+import '../ui/widgets/kanban/kanban_column.dart';
 import '../ui/widgets/add_task_dialog.dart';
 
 class TasksPage extends StatelessWidget {
@@ -12,148 +15,115 @@ class TasksPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // "watch" escuta mudanças no controller para reconstruir a tela
     final controller = context.watch<TaskController>();
-    final primaryColor = const Color(0xFF2EA063); // AzorTech Green
     final isManager = controller.isManager;
-    final bgColor = const Color(0xFF111827); // Dark BG
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: AppColors.background,
+      
+      // --- HEADER (Barra de Título) ---
       appBar: AppBar(
-        backgroundColor: bgColor,
+        backgroundColor: AppColors.background,
         elevation: 0,
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
           child: Container(
-            decoration: BoxDecoration(color: const Color(0xFF1F2937), borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(8)
+            ),
             child: IconButton(
-              icon: SvgPicture.asset('lib/assets/icones/horario-comercial.svg', width: 20, height: 20, color: primaryColor),
+              icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
               onPressed: () => Navigator.pop(context),
             ),
           ),
         ),
         title: Row(
           children: [
-            Text('Fluxo de Trabalho', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 18, color: Colors.white)),
+            Text(
+              'Fluxo de Trabalho', 
+              style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 18, color: Colors.white)
+            ),
             const SizedBox(width: 12),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: primaryColor.withOpacity(0.1), 
+                color: AppColors.primary.withOpacity(0.1), 
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: primaryColor.withOpacity(0.3))
+                border: Border.all(color: AppColors.primary.withOpacity(0.3))
               ),
-              child: Text("KANBAN", style: GoogleFonts.jetBrainsMono(fontSize: 10, color: primaryColor, fontWeight: FontWeight.bold)),
+              child: Text(
+                "KANBAN", 
+                style: GoogleFonts.jetBrainsMono(fontSize: 10, color: AppColors.primary, fontWeight: FontWeight.bold)
+              ),
             )
           ],
         ),
         actions: [
-          _buildHeaderAction(Icons.search),
+          // Botão de Pesquisa (Exemplo visual)
+          _buildHeaderAction(Icons.search, onTap: () {}),
           const SizedBox(width: 8),
-          _buildHeaderAction(Icons.filter_list),
+          
+          // Botão de Notificações com Badge
+          Stack(
+            children: [
+              _buildHeaderAction(Icons.notifications_outlined, onTap: () => _showNotifications(context)),
+              if (controller.unreadCount > 0)
+                Positioned(
+                  right: 8, 
+                  top: 8, 
+                  child: Container(
+                    padding: const EdgeInsets.all(4), 
+                    decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                    child: Text(
+                      controller.unreadCount.toString(), 
+                      style: const TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold)
+                    ),
+                  )
+                ),
+            ],
+          ),
           const SizedBox(width: 24),
         ],
       ),
       
+      // --- BOTÃO FLUTUANTE (Adicionar Tarefa) ---
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: primaryColor,
+        backgroundColor: AppColors.primary,
         elevation: 4,
-        highlightElevation: 8,
         icon: const Icon(Icons.add, color: Colors.white),
         label: Text("Nova Tarefa", style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w600)),
         onPressed: () => _showAddTaskDialog(context),
       ),
       
+      // --- CORPO DA PÁGINA ---
       body: Column(
         children: [
-          // BARRA DE FILTROS
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-            decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: Colors.white10))
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("FILTROS DE VISUALIZAÇÃO", style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey[500], letterSpacing: 1.0)),
-                const SizedBox(height: 12),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      ...controller.categories.map((c) => _buildFilterTab(context, c, controller, isManager)),
-                      if (isManager) 
-                        Padding(
-                          padding: const EdgeInsets.only(left: 12),
-                          child: InkWell(
-                            onTap: () => _showAddCategoryDialog(context),
-                            borderRadius: BorderRadius.circular(20),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.transparent,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: Colors.grey[700]!, style: BorderStyle.solid)
-                              ),
-                              child: Row(children: [
-                                const Icon(Icons.add, size: 14, color: Colors.grey),
-                                const SizedBox(width: 6),
-                                Text("Categoria", style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey))
-                              ]),
-                            ),
-                          ),
-                        )
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+          // 1. Barra de Filtros (Categorias)
+          const FilterBar(),
           
-          // KANBAN SCROLL
+          // 2. Área do Kanban (Colunas Horizontais)
           Expanded(
             child: ListView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 80), // Padding extra embaixo p/ FAB não tapar
               children: [
-                ...controller.statuses.map((status) => 
-                  Padding(
-                    padding: const EdgeInsets.only(right: 20),
-                    child: _buildKanbanColumn(context, status, controller.filteredTasks, controller, isManager),
-                  )
-                ),
+                // Gera uma coluna para cada Status definido no Controller
+                ...controller.statuses.map((status) {
+                  // Filtra as tarefas para esta coluna específica
+                  final tasksForStatus = controller.filteredTasks
+                      .where((t) => t.status == status)
+                      .toList();
+                  
+                  return KanbanColumn(status: status, tasks: tasksForStatus);
+                }),
                 
-                // Botão "Adicionar Quadro"
+                // Botão "Adicionar Coluna" (Apenas para Gestores)
                 if (isManager)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 0),
-                    child: InkWell(
-                      onTap: () => _showAddStatusDialog(context),
-                      borderRadius: BorderRadius.circular(16),
-                      child: Container(
-                        width: 300,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.02),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white10, width: 1.5), 
-                        ),
-                        child: Center(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.add_circle_outline, color: Colors.grey[600], size: 18),
-                              const SizedBox(width: 8),
-                              Text("Adicionar Quadro", style: GoogleFonts.inter(color: Colors.grey[600], fontWeight: FontWeight.w600)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                
-                const SizedBox(width: 48), 
+                  _buildAddStatusButton(context),
+                  
+                const SizedBox(width: 48), // Espaço final
               ],
             ),
           ),
@@ -162,108 +132,47 @@ class TasksPage extends StatelessWidget {
     );
   }
 
-  Widget _buildHeaderAction(IconData icon) {
+  // --- MÉTODOS VISUAIS AUXILIARES ---
+
+  Widget _buildHeaderAction(IconData icon, {required VoidCallback onTap}) {
     return Container(
-      width: 40, height: 40,
-      decoration: BoxDecoration(color: const Color(0xFF1F2937), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white10)),
-      child: Icon(icon, size: 20, color: Colors.grey[400]),
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white10)
+      ),
+      child: IconButton(
+        icon: Icon(icon, size: 20, color: Colors.grey[400]),
+        onPressed: onTap,
+        tooltip: 'Ação',
+      ),
     );
   }
 
-  Widget _buildKanbanColumn(BuildContext context, String title, List<TaskModel> allTasks, TaskController controller, bool isManager) {
-    final tasks = allTasks.where((t) => t.status == title).toList();
-    final dummy = TaskModel(id: '', title: '', description: '', dueDate: DateTime.now(), category: '', priority: TaskPriority.baixa, status: title);
-    final color = dummy.statusColor;
-
-    return DragTarget<String>(
-      onAccept: (id) => controller.updateTaskStatus(id, title),
-      builder: (context, candidate, rejected) {
-        return Container(
-          width: 340, 
+  Widget _buildAddStatusButton(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 0, right: 20),
+      child: InkWell(
+        onTap: () => _showAddStatusDialog(context),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: 300,
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.2), 
+            color: Colors.white.withOpacity(0.02),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: candidate.isNotEmpty ? color.withOpacity(0.5) : Colors.transparent,
-              width: 2
-            )
+            border: Border.all(color: Colors.white10, width: 1.5, style: BorderStyle.solid), 
+            // Tracejado seria complexo nativamente, usaremos sólido sutil
           ),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Header da Coluna
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(width: 8, height: 24, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4))),
-                        const SizedBox(width: 12),
-                        Text(title.toUpperCase(), style: GoogleFonts.inter(fontWeight: FontWeight.w800, fontSize: 13, color: Colors.grey[300], letterSpacing: 0.5)),
-                        const SizedBox(width: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(color: const Color(0xFF1F2937), borderRadius: BorderRadius.circular(12)),
-                          child: Text(tasks.length.toString(), style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white70)),
-                        )
-                      ],
-                    ),
-                    if (isManager && title != "A Fazer" && title != "Concluído") 
-                      IconButton(icon: Icon(Icons.more_horiz, size: 18, color: Colors.grey[600]), onPressed: () => controller.removeStatus(title))
-                  ],
-                ),
-              ),
-              
-              // Lista
-              Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  itemCount: tasks.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (ctx, i) => Draggable<String>(
-                    data: tasks[i].id,
-                    feedback: Material(
-                      color: Colors.transparent,
-                      child: SizedBox(width: 300, child: Opacity(opacity: 0.9, child: TaskCard(task: tasks[i], onToggle: () {}))),
-                    ),
-                    childWhenDragging: Opacity(opacity: 0.3, child: TaskCard(task: tasks[i], onToggle: () {})),
-                    child: TaskCard(task: tasks[i], onToggle: () => controller.toggleTaskCompletion(tasks[i].id))
-                  )
-                ),
-              ),
+              Icon(Icons.add_circle_outline, color: Colors.grey[600], size: 32),
               const SizedBox(height: 12),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildFilterTab(BuildContext context, CategoryItem cat, TaskController controller, bool isManager) {
-    final isSelected = controller.currentFilter == cat.label;
-    final color = Theme.of(context).primaryColor;
-    
-    return Padding(
-      padding: const EdgeInsets.only(right: 12),
-      child: InkWell(
-        onTap: () => controller.setFilter(cat.label),
-        onLongPress: (isManager && cat.label != "Todas") ? () => controller.removeCategory(cat.label) : null,
-        borderRadius: BorderRadius.circular(24),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: isSelected ? color : const Color(0xFF1F2937),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: isSelected ? color : Colors.white10),
-            boxShadow: isSelected ? [BoxShadow(color: color.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))] : []
-          ),
-          child: Row(
-            children: [
-              Icon(cat.icon, size: 16, color: isSelected ? Colors.white : Colors.grey[400]),
-              const SizedBox(width: 8),
-              Text(cat.label, style: GoogleFonts.inter(fontSize: 13, fontWeight: isSelected ? FontWeight.bold : FontWeight.w500, color: isSelected ? Colors.white : Colors.grey[400])),
+              Text(
+                "Adicionar Quadro", 
+                style: GoogleFonts.inter(color: Colors.grey[600], fontWeight: FontWeight.w600, fontSize: 16)
+              ),
             ],
           ),
         ),
@@ -271,137 +180,111 @@ class TasksPage extends StatelessWidget {
     );
   }
 
-  Future<void> _showAddStatusDialog(BuildContext context) async {
-    final c = TextEditingController();
-    showDialog(context: context, builder: (ctx) => _ModernDialog(title: "Novo Quadro", child: TextField(controller: c, decoration: _inputDeco("Nome da Coluna")), onConfirm: (){ if(c.text.isNotEmpty) { context.read<TaskController>().addStatus(c.text); Navigator.pop(ctx); }}));
+  // --- LÓGICA DE DIALOGS ---
+
+  Future<void> _showAddTaskDialog(BuildContext context) async {
+    final controller = context.read<TaskController>();
+    
+    // Abre o Dialog
+    final result = await showDialog(
+      context: context, 
+      builder: (_) => const AddTaskDialog()
+    );
+    
+    // Se o usuário salvou (result != null)
+    if (result != null && context.mounted) {
+       // Recupera Subtarefas do Map
+       List<SubTask> subs = [];
+       if (result['subtasks'] != null) {
+         subs = (result['subtasks'] as List<String>)
+             .map((t) => SubTask(id: DateTime.now().toString() + t.hashCode.toString(), title: t))
+             .toList();
+       }
+
+       // Cria o Modelo
+       final newTask = TaskModel(
+         id: DateTime.now().toString(),
+         title: result['title'],
+         description: result['desc'],
+         client: result['client'],
+         assignee: result['assignee'],
+         priority: TaskPriority.values.firstWhere(
+           (e) => e.name == result['priority'], 
+           orElse: () => TaskPriority.media
+         ),
+         category: result['category'],
+         dueDate: result['date'],
+         status: 'A Fazer', // Sempre começa em "A Fazer" ou o primeiro status da lista
+         subtasks: subs
+       );
+
+       // Adiciona no Controller
+       controller.addTask(newTask);
+    }
   }
 
-  // [ALTERAÇÃO]: Seletor de Ícones no Dialog de Categoria
-  Future<void> _showAddCategoryDialog(BuildContext context) async {
+  Future<void> _showAddStatusDialog(BuildContext context) async {
+    final controller = context.read<TaskController>();
     final textController = TextEditingController();
     
-    // Lista de ícones disponíveis
-    final List<IconData> availableIcons = [
-      Icons.label_outline,
-      Icons.code,
-      Icons.design_services,
-      Icons.attach_money,
-      Icons.campaign, // Marketing
-      Icons.people, // RH
-      Icons.shopping_cart, // Vendas
-      Icons.bug_report, // QA
-      Icons.security,
-      Icons.cloud,
-      Icons.folder,
-      Icons.lightbulb,
-    ];
-    
-    IconData selectedIcon = availableIcons[0]; // Ícone padrão
-
     await showDialog(
-      context: context, 
-      builder: (ctx) => StatefulBuilder( // StatefulBuilder para atualizar o ícone selecionado
-        builder: (context, setState) {
-          return _ModernDialog(
-            title: "Nova Categoria", 
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: textController, 
-                  style: GoogleFonts.inter(color: Colors.white),
-                  decoration: _inputDeco("Nome da Categoria", icon: selectedIcon) // Mostra ícone no input
-                ),
-                const SizedBox(height: 16),
-                Text("Selecione um ícone:", style: GoogleFonts.inter(color: Colors.grey[400], fontSize: 12, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF111827),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white10)
-                  ),
-                  child: Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: availableIcons.map((icon) {
-                      final isSelected = icon == selectedIcon;
-                      return InkWell(
-                        onTap: () => setState(() => selectedIcon = icon),
-                        borderRadius: BorderRadius.circular(8),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: isSelected ? const Color(0xFF2EA063).withOpacity(0.2) : Colors.transparent,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: isSelected ? const Color(0xFF2EA063) : Colors.transparent)
-                          ),
-                          child: Icon(icon, size: 20, color: isSelected ? const Color(0xFF2EA063) : Colors.grey),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                )
-              ],
-            ), 
-            onConfirm: () { 
-              if(textController.text.isNotEmpty) { 
-                context.read<TaskController>().addCategory(textController.text, selectedIcon); 
-                Navigator.pop(ctx); 
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text("Novo Status", style: TextStyle(color: Colors.white)),
+        content: TextField(
+          controller: textController,
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(
+            hintText: "Ex: Em Revisão", 
+            hintStyle: TextStyle(color: Colors.grey),
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary))
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx), 
+            child: const Text("Cancelar")
+          ),
+          TextButton(
+            onPressed: () {
+              if(textController.text.isNotEmpty) {
+                controller.addStatus(textController.text);
+                Navigator.pop(ctx);
               }
-            }
-          );
-        }
+            }, 
+            child: const Text("Adicionar", style: TextStyle(color: AppColors.primary))
+          ),
+        ],
       )
     );
   }
 
-  Future<void> _showAddTaskDialog(BuildContext context) async {
-    final result = await showDialog(context: context, builder: (_) => const AddTaskDialog());
-    if (result != null && context.mounted) {
-      final ctrl = context.read<TaskController>();
-      List<SubTask> subs = [];
-      if (result['subtasks'] != null) {
-        subs = (result['subtasks'] as List<String>).map((t) => SubTask(id: DateTime.now().toString() + t.hashCode.toString(), title: t)).toList();
-      }
-      ctrl.addTask(TaskModel(id: DateTime.now().toString(), title: result['title'], description: result['desc'], client: result['client'], assignee: result['assignee'], dueDate: result['date'], category: result['category'], priority: TaskPriority.values.firstWhere((e) => e.name == result['priority'], orElse: () => TaskPriority.media), status: ctrl.statuses.first, subtasks: subs));
-    }
-  }
-}
-
-// Helpers de Estilo
-InputDecoration _inputDeco(String label, {IconData? icon}) => InputDecoration(
-  labelText: label, 
-  prefixIcon: icon != null ? Icon(icon, color: Colors.grey[500], size: 18) : null,
-  filled: true, 
-  fillColor: const Color(0xFF111827), 
-  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none), 
-  labelStyle: TextStyle(color: Colors.grey[500])
-);
-
-class _ModernDialog extends StatelessWidget {
-  final String title; final Widget child; final VoidCallback onConfirm;
-  const _ModernDialog({required this.title, required this.child, required this.onConfirm});
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: const Color(0xFF1F2937),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Container(
+  void _showNotifications(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => Container(
         padding: const EdgeInsets.all(24),
-        width: 400,
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
-          const SizedBox(height: 16), child, const SizedBox(height: 24),
-          Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-            TextButton(onPressed: () => Navigator.pop(context), child: Text("Cancelar", style: TextStyle(color: Colors.grey[400]))),
-            const SizedBox(width: 8),
-            FilledButton(onPressed: onConfirm, style: FilledButton.styleFrom(backgroundColor: const Color(0xFF2EA063)), child: const Text("Criar"))
-          ])
-        ]),
-      ),
+        height: 300,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Notificações", 
+              style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)
+            ),
+            const SizedBox(height: 16),
+            const Center(
+              child: Text(
+                "Nenhuma notificação nova.", 
+                style: TextStyle(color: Colors.grey)
+              )
+            ),
+          ],
+        ),
+      )
     );
   }
 }

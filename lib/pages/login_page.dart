@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'hub_page.dart'; // Importa a nova Home do ERP
+import '../ui/pages/hub_page.dart'; // Importa a nova Home do ERP
 import 'package:flutter_svg/flutter_svg.dart';
 
 

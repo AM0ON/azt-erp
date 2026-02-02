@@ -1,9 +1,12 @@
+import 'package:azt_tasks/pages/task_page.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../controllers/task_controller.dart';
-import 'task_page.dart'; // Ajuste o path se necessário
-import 'admin_page.dart'; // Ajuste o path se necessário
+
+import '../../core/app_colors.dart';
+import '../../controllers/task_controller.dart';
+import 'task_page.dart';
+import 'finance_page.dart';
 
 class HubPage extends StatelessWidget {
   const HubPage({super.key});
@@ -11,14 +14,10 @@ class HubPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final taskController = context.watch<TaskController>();
-    final activeTasksCount = taskController.activeTasks.length;
-    // Pega as cores do tema escuro
-    final bgColor = Theme.of(context).scaffoldBackgroundColor;
-    final surfaceColor = Theme.of(context).cardTheme.color;
-    final borderColor = Theme.of(context).dividerTheme.color;
+    final activeTasksCount = taskController.activeTasksCount;
 
     return Scaffold(
-      backgroundColor: bgColor, // Garante fundo escuro
+      backgroundColor: AppColors.background,
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -54,10 +53,40 @@ class HubPage extends StatelessWidget {
                             spacing: 20,
                             runSpacing: 20,
                             children: [
-                              _buildAppCard(context, title: "Task Manager", subtitle: "Projetos & Sprints", icon: Icons.check_circle, color: const Color(0xFF2EA063), destination: const TasksPage(), badge: "$activeTasksCount Ativas"),
-                              _buildAppCard(context, title: "Administrativo", subtitle: "Financeiro", icon: Icons.pie_chart, color: const Color(0xFF3B82F6), destination: const AdminPage()),
-                              _buildAppCard(context, title: "Recursos Humanos", subtitle: "Talentos & Ponto", icon: Icons.people_alt, color: const Color(0xFFF97316), isLocked: true),
-                              _buildAppCard(context, title: "AZT Drive", subtitle: "Arquivos", icon: Icons.folder_special, color: const Color(0xFF6366F1), isLocked: true, badge: "Beta"),
+                              _buildAppCard(
+                                context, 
+                                title: "Task Manager", 
+                                subtitle: "Projetos & Sprints", 
+                                icon: Icons.check_circle, 
+                                color: const Color(0xFF2EA063), 
+                                destination: const TasksPage(), 
+                                badge: "$activeTasksCount Ativas"
+                              ),
+                              _buildAppCard(
+                                context, 
+                                title: "Administrativo", 
+                                subtitle: "Financeiro", 
+                                icon: Icons.pie_chart, 
+                                color: const Color(0xFF3B82F6), 
+                                destination: const FinancePage()
+                              ),
+                              _buildAppCard(
+                                context, 
+                                title: "Recursos Humanos", 
+                                subtitle: "Talentos & Ponto", 
+                                icon: Icons.people_alt, 
+                                color: const Color(0xFFF97316), 
+                                isLocked: true
+                              ),
+                              _buildAppCard(
+                                context, 
+                                title: "AZT Drive", 
+                                subtitle: "Arquivos", 
+                                icon: Icons.folder_special, 
+                                color: const Color(0xFF6366F1), 
+                                isLocked: true, 
+                                badge: "Beta"
+                              ),
                             ],
                           );
                         }
@@ -77,9 +106,9 @@ class HubPage extends StatelessWidget {
     return Container(
       width: double.infinity,
       height: 280,
-      decoration: BoxDecoration(
-        color: Colors.black, // Header Preto Absoluto
-        border: Border(bottom: BorderSide(color: Theme.of(context).dividerTheme.color!))
+      decoration: const BoxDecoration(
+        color: Colors.black,
+        border: Border(bottom: BorderSide(color: Colors.white10))
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
@@ -91,12 +120,12 @@ class HubPage extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.grid_view_rounded, color: Theme.of(context).primaryColor, size: 24),
+                    const Icon(Icons.grid_view_rounded, color: AppColors.primary, size: 24),
                     const SizedBox(width: 12),
                     Text("AzorTech ERP", style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
                   ],
                 ),
-                IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.logout, color: Colors.grey))
+                IconButton(onPressed: () {}, icon: const Icon(Icons.logout, color: Colors.grey))
               ],
             ),
             const Spacer(),
@@ -114,9 +143,9 @@ class HubPage extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardTheme.color, // Surface Color
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Theme.of(context).dividerTheme.color!),
+          border: Border.all(color: Colors.white10),
         ),
         child: Row(
           children: [
@@ -137,7 +166,7 @@ class HubPage extends StatelessWidget {
 
   Widget _buildAppCard(BuildContext context, {required String title, required String subtitle, required IconData icon, required Color color, Widget? destination, bool isLocked = false, String? badge}) {
     return Material(
-      color: Theme.of(context).cardTheme.color, // Surface Color
+      color: AppColors.surface,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: isLocked ? null : () { if(destination != null) Navigator.push(context, MaterialPageRoute(builder: (_) => destination)); },
@@ -148,7 +177,7 @@ class HubPage extends StatelessWidget {
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Theme.of(context).dividerTheme.color!),
+            border: Border.all(color: Colors.white10),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
